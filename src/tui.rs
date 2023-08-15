@@ -12,6 +12,8 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
+use crate::{app::App, component::Component};
+
 pub struct TuiApp {
     terminal: Terminal<CrosstermBackend<Stdout>>,
 }
@@ -39,10 +41,13 @@ impl TuiApp {
 
     pub fn run(mut self) -> Result<()> {
         self.setup_terminal()?;
+        let mut app = App::build()?;
         loop {
-            self.terminal.draw(|frame| {})?;
+            self.terminal
+                .draw(|frame| app.render(frame, frame.size()))?;
             if event::poll(Duration::from_millis(250))? {
                 if let Event::Key(key) = event::read()? {
+                    app.on_event(&key);
                     if KeyCode::Char('q') == key.code {
                         break;
                     }

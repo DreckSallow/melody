@@ -1,6 +1,11 @@
 use anyhow::anyhow;
 
+mod app;
+mod component;
+mod loaders;
+mod tabs;
 mod tui;
+mod view;
 use tui::TuiApp;
 
 fn main() {
