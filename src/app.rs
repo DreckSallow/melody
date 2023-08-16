@@ -6,6 +6,7 @@ use ratatui::{
 
 use crate::{
     component::{Component, FrameType},
+    event::AppEvent,
     tabs::player::PlayerTab,
 };
 
@@ -43,7 +44,7 @@ impl Component for App {
             section.render(frame, chunks[1]);
         }
     }
-    fn on_event(&mut self, event: &crossterm::event::KeyEvent) {
+    fn on_event(&mut self, event: &AppEvent) {
         let tab_info = self.tabs.get_mut(self.tab_index);
         if let Some((_, section)) = tab_info {
             section.on_event(event);

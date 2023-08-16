@@ -12,7 +12,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use crate::{app::App, component::Component};
+use crate::{app::App, component::Component, event::AppEvent};
 
 pub struct TuiApp {
     terminal: Terminal<CrosstermBackend<Stdout>>,
@@ -47,10 +47,11 @@ impl TuiApp {
                 .draw(|frame| app.render(frame, frame.size()))?;
             if event::poll(Duration::from_millis(250))? {
                 if let Event::Key(key) = event::read()? {
-                    app.on_event(&key);
                     if KeyCode::Char('q') == key.code {
+                        app.on_event(&AppEvent::Quit);
                         break;
                     }
+                    app.on_event(&AppEvent::Key(key));
                 }
             }
         }
