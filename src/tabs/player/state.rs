@@ -21,7 +21,7 @@ impl PlayerState {
 
 pub struct PlayerStateReactive {
     state: Rc<RefCell<PlayerState>>,
-    observers: Vec<Box<dyn FnMut(&PlayerStateAction, &PlayerState)>>,
+    observers: Vec<Box<dyn Fn(&PlayerStateAction, &PlayerState)>>,
 }
 
 impl From<&Rc<RefCell<PlayerState>>> for PlayerStateReactive {
@@ -40,9 +40,9 @@ pub enum PlayerStateAction {
 }
 
 impl PlayerStateReactive {
-    pub fn dispatch<F>(&mut self, action: PlayerStateAction, mut cb: F)
+    pub fn dispatch<F>(&mut self, action: PlayerStateAction, cb: F)
     where
-        F: FnMut(&mut PlayerState),
+        F: FnOnce(&mut PlayerState),
     {
         {
             let mut state = self.state.borrow_mut();
@@ -56,7 +56,7 @@ impl PlayerStateReactive {
     }
     pub fn subscribe<F>(&mut self, cb: F)
     where
-        F: FnMut(&PlayerStateAction, &PlayerState) + 'static,
+        F: Fn(&PlayerStateAction, &PlayerState) + 'static,
     {
         self.observers.push(Box::new(cb))
     }
