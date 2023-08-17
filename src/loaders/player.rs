@@ -54,7 +54,7 @@ fn get_audio_data(p: &str) -> Result<PlaylistSong> {
     let raw_title = tagged_file
         .primary_tag()
         .or_else(|| tagged_file.first_tag())
-        .and_then(|t| t.title().as_deref().and_then(|o| Some(o.to_string())));
+        .and_then(|t| t.title().as_deref().map(|o| o.to_string()));
     let path_buf = PathBuf::from(p);
     // println!("path: {:?}", path_buf);
     Ok(PlaylistSong {
@@ -62,7 +62,7 @@ fn get_audio_data(p: &str) -> Result<PlaylistSong> {
         file_name: path_buf
             .file_name()
             .and_then(|n| n.to_str())
-            .and_then(|st| Some(st.to_string())),
+            .map(|st| st.to_string()),
         path: path_buf,
         duration: properties.duration(),
     })

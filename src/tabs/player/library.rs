@@ -25,14 +25,12 @@ pub struct PlayerLibrary {
 impl PlayerLibrary {
     pub fn build(playlists: &[String], state: &Rc<RefCell<PlayerStateReactive>>) -> Self {
         let index = if playlists.is_empty() { None } else { Some(0) };
-        let library = Self {
+        Self {
             playlists: playlists.into(),
             list_controller: ListController::default().with_select(index),
             is_focus: false,
             parent_state: Rc::clone(&state),
-        };
-
-        library
+        }
     }
 }
 

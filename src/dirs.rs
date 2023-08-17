@@ -12,7 +12,7 @@ pub fn local_data_dir() -> Option<PathBuf> {
         }
         return Some(local_data_dir.into());
     }
-    return None;
+    None
 }
 
 pub fn playlists_path() -> Option<PathBuf> {
