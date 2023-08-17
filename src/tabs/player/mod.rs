@@ -110,11 +110,18 @@ impl Component for PlayerTab {
                     match key_event.code {
                         KeyCode::Char('2') => {
                             self.playlist_section.borrow_mut().is_focus = true;
-                            self.library_section.borrow_mut().is_focus = false
+                            self.library_section.borrow_mut().is_focus = false;
+                            self.audio_section.borrow_mut().is_focus = false
                         }
                         KeyCode::Char('1') => {
                             self.library_section.borrow_mut().is_focus = true;
-                            self.playlist_section.borrow_mut().is_focus = false
+                            self.playlist_section.borrow_mut().is_focus = false;
+                            self.audio_section.borrow_mut().is_focus = false
+                        }
+                        KeyCode::Char('3') => {
+                            self.playlist_section.borrow_mut().is_focus = false;
+                            self.library_section.borrow_mut().is_focus = false;
+                            self.audio_section.borrow_mut().is_focus = true
                         }
                         _ => {}
                     }

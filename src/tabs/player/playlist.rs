@@ -42,13 +42,14 @@ impl Playlist {
                     .iter()
                     .find(|play| play.name == *selected);
                 if let Some(playlist) = playlist {
-                    // println!("{:?}", playlist.songs);
                     let songs: Vec<Vec<String>> = playlist
                         .songs
                         .iter()
-                        .map(|song| vec![song.to_string()])
+                        .map(|song| {
+                            let copy_song = song.clone();
+                            vec![copy_song.title.unwrap_or("---".into())]
+                        })
                         .collect();
-                    // println!("{:?}", songs);
                     self.set_songs(&songs)
                 }
             }
@@ -80,7 +81,6 @@ impl Component for Playlist {
             .style(Style::default().fg(ratatui::style::Color::Blue));
 
         let items = self.songs.iter().map(|item| {
-            // println!("item {:?}", item);
             let cells = item.iter().map(|text| Cell::from(text.clone()));
             Row::new(cells).height(1)
         });

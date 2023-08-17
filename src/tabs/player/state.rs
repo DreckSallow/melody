@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::loaders::PlaylistsData;
+use crate::loaders::player::PlaylistsData;
 
 #[derive(Debug)]
 pub struct PlayerState {
