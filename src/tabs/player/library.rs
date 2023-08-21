@@ -70,11 +70,8 @@ impl Component for PlayerLibrary {
                     KeyCode::Enter => self.parent_state.borrow_mut().dispatch(
                         PlayerStateAction::SetPlaylist,
                         |state| {
-                            if let Some(index) = self.list_controller.selected() {
-                                if let Some(playlist) = self.playlists.get(index) {
-                                    state.playlist_selected = Some(playlist.into())
-                                }
-                            }
+                            self.is_focus = false;
+                            state.playlist_selected = self.list_controller.selected();
                         },
                     ),
                     _ => {}

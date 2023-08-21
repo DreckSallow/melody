@@ -12,6 +12,7 @@ use crate::{component::Component, event::AppEvent, view::controllers::table::Tab
 use super::state::{PlayerState, PlayerStateAction, PlayerStateReactive};
 
 pub struct Playlist {
+    playlist_name: String,
     songs: Vec<Vec<String>>,
     table_controller: TableController,
     pub is_focus: bool,
@@ -22,6 +23,7 @@ impl Playlist {
     pub fn build(songs: &[Vec<String>], state: &Rc<RefCell<PlayerStateReactive>>) -> Self {
         let index = if songs.is_empty() { None } else { Some(0) };
         Self {
+            playlist_name: "List".into(),
             songs: songs.into(),
             table_controller: TableController::default().with_select(index),
             is_focus: false,
@@ -35,13 +37,8 @@ impl Playlist {
     }
     pub fn list_changes(&mut self, action: &PlayerStateAction, state: &PlayerState) {
         if let PlayerStateAction::SetPlaylist = *action {
-            if let Some(ref selected) = state.playlist_selected {
-                let playlist = state
-                    .library
-                    .playlists
-                    .iter()
-                    .find(|play| play.name == *selected);
-                if let Some(playlist) = playlist {
+            if let Some(ref index_play) = state.playlist_selected {
+                if let Some(playlist) = state.library.playlists.get(*index_play) {
                     let songs: Vec<Vec<String>> = playlist
                         .songs
                         .iter()
@@ -50,7 +47,9 @@ impl Playlist {
                             vec![copy_song.title.unwrap_or("---".into())]
                         })
                         .collect();
-                    self.set_songs(&songs)
+                    self.playlist_name = playlist.name.clone();
+                    self.set_songs(&songs);
+                    self.is_focus = true;
                 }
             }
         }
@@ -65,13 +64,8 @@ impl Component for Playlist {
             Style::default()
         };
 
-        let title_block = match Some("List") {
-            Some(s) => s,
-            None => "List",
-        };
-
         let playlist_block = Block::default()
-            .title(title_block)
+            .title(self.playlist_name.as_str())
             .borders(Borders::ALL)
             .border_style(styled);
 
@@ -108,17 +102,19 @@ impl Component for Playlist {
                     KeyCode::Down => self.table_controller.next(self.songs.len()),
                     KeyCode::Up => self.table_controller.previous(self.songs.len()),
                     KeyCode::Enter => {
-                        let song_opt = &self
-                            .table_controller
-                            .selected()
-                            .and_then(|index| self.songs.get(index))
-                            .and_then(|play| play.get(0).cloned());
+                        // let song_opt = &self
+                        //     .table_controller
+                        //     .selected()
+                        //     .and_then(|index| self.songs.get(index))
+                        //     .and_then(|play| play.get(0).cloned());
 
-                        self.parent_state
-                            .borrow_mut()
-                            .dispatch(PlayerStateAction::SetAudio, |state| {
-                                state.audio_selected = song_opt.clone()
-                            });
+                        self.parent_state.borrow_mut().dispatch(
+                            PlayerStateAction::SetAudio,
+                            |state| {
+                                state.audio_selected = self.table_controller.selected();
+                                // state.audio_selected = song_opt.clone()
+                            },
+                        );
                     }
                     _ => {}
                 }
