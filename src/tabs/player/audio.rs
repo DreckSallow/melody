@@ -111,8 +111,12 @@ impl AudioHandler {
         info
     }
     pub fn append(&mut self, decoder: Decoder<BufReader<File>>) {
+        if !self.sink.empty() {
+            self.sink.stop();
+        };
         self.sink.append(decoder);
         self.progress = Progress::default();
+
         match self.status {
             AudioStatus::Play => {
                 self.play();
