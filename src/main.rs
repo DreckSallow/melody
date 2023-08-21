@@ -2,6 +2,8 @@ use anyhow::anyhow;
 
 mod app;
 mod component;
+mod dirs;
+mod event;
 mod loaders;
 mod tabs;
 mod tui;
@@ -13,6 +15,5 @@ fn main() {
         Ok(app) => app.run(),
         Err(e) => Err(anyhow!(e)),
     };
-
-    println!("result: {:?}", res);
+    println!("res: {:?}", res);
 }

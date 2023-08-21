@@ -14,6 +14,9 @@ impl TableController {
         self.state.select(index)
     }
 
+    pub fn selected(&self) -> Option<usize> {
+        self.state.selected()
+    }
     pub fn state(&mut self) -> &mut TableState {
         &mut self.state
     }

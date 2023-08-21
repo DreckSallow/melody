@@ -4,6 +4,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     component::{Component, FrameType},
+    event::AppEvent,
     view::controllers::list::ListController,
 };
 use crossterm::event::{KeyCode, KeyEventKind};
@@ -23,14 +24,13 @@ pub struct PlayerLibrary {
 
 impl PlayerLibrary {
     pub fn build(playlists: &[String], state: &Rc<RefCell<PlayerStateReactive>>) -> Self {
-        let library = Self {
+        let index = if playlists.is_empty() { None } else { Some(0) };
+        Self {
             playlists: playlists.into(),
-            list_controller: ListController::default(),
+            list_controller: ListController::default().with_select(index),
             is_focus: false,
             parent_state: Rc::clone(&state),
-        };
-
-        library
+        }
     }
 }
 
@@ -58,25 +58,26 @@ impl Component for PlayerLibrary {
             .highlight_symbol("🚀 ");
         frame.render_stateful_widget(list_block, area, self.list_controller.state())
     }
-    fn on_event(&mut self, event: &crossterm::event::KeyEvent) {
-        if event.kind != KeyEventKind::Press {
-            return;
-        }
-        match event.code {
-            KeyCode::Down => self.list_controller.next(self.playlists.len()),
-            KeyCode::Up => self.list_controller.previous(self.playlists.len()),
-            KeyCode::Enter => {
-                self.parent_state
-                    .borrow_mut()
-                    .dispatch(PlayerStateAction::SetPlaylist, |state| {
-                        if let Some(index) = self.list_controller.selected() {
-                            if let Some(playlist) = self.playlists.get(index) {
-                                state.playlist_selected = Some(playlist.into())
-                            }
-                        }
-                    })
+    fn on_event(&mut self, event: &AppEvent) {
+        match *event {
+            AppEvent::Key(key_event) => {
+                if key_event.kind != KeyEventKind::Press {
+                    return;
+                }
+                match key_event.code {
+                    KeyCode::Down => self.list_controller.next(self.playlists.len()),
+                    KeyCode::Up => self.list_controller.previous(self.playlists.len()),
+                    KeyCode::Enter => self.parent_state.borrow_mut().dispatch(
+                        PlayerStateAction::SetPlaylist,
+                        |state| {
+                            self.is_focus = false;
+                            state.playlist_selected = self.list_controller.selected();
+                        },
+                    ),
+                    _ => {}
+                }
             }
-            _ => {}
+            AppEvent::Quit => {}
         }
     }
     fn is_focus(&self) -> bool {
