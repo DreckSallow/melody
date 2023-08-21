@@ -43,7 +43,6 @@ impl TryFrom<RawToml> for PlaylistsData {
 
             data.playlists.push(playlist);
         }
-        println!("data: {:?}", data);
         Ok(data)
     }
 }
@@ -56,7 +55,6 @@ fn get_audio_data(p: &str) -> Result<PlaylistSong> {
         .or_else(|| tagged_file.first_tag())
         .and_then(|t| t.title().as_deref().map(|o| o.to_string()));
     let path_buf = PathBuf::from(p);
-    // println!("path: {:?}", path_buf);
     Ok(PlaylistSong {
         title: raw_title,
         file_name: path_buf

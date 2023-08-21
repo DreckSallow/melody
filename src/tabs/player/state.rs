@@ -5,8 +5,8 @@ use crate::loaders::player::PlaylistsData;
 #[derive(Debug)]
 pub struct PlayerState {
     pub library: PlaylistsData,
-    pub playlist_selected: Option<String>,
-    pub audio_selected: Option<String>,
+    pub playlist_selected: Option<usize>,
+    pub audio_selected: Option<usize>,
 }
 
 impl PlayerState {
