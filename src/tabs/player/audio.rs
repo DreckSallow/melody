@@ -102,19 +102,20 @@ impl AudioHandler {
         self.sink.pause();
         self.sink.stop();
     }
-    pub fn percentage_info(&self, other: Duration) -> (u64, u8) {
-        (self.progress.seconds(), self.progress.percentage(other))
-    }
-
-    pub fn append(&mut self, decoder: Decoder<BufReader<File>>) {
-        if !self.sink.empty() {
-            self.sink.stop()
+    pub fn percentage_info(&mut self, other: Duration) -> (u64, u8) {
+        let info = (self.progress.seconds(), self.progress.percentage(other));
+        if info.1 >= 100 {
+            self.pause();
         }
+
+        info
+    }
+    pub fn append(&mut self, decoder: Decoder<BufReader<File>>) {
         self.sink.append(decoder);
+        self.progress = Progress::default();
         match self.status {
             AudioStatus::Play => {
-                self.sink.play();
-                // self.progress.start();
+                self.play();
             }
             _ => {}
         }
@@ -185,7 +186,7 @@ impl Component for AudioPlayer {
             .style(styled);
         frame.render_widget(block, area);
 
-        match self.handler.song.as_ref() {
+        match self.handler.song.clone() {
             Some(song) => {
                 let chunks = Layout::default()
                     .direction(Direction::Vertical)
