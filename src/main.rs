@@ -17,3 +17,7 @@ fn main() {
     };
     println!("res: {:?}", res);
 }
+
+struct Inner {}
+
+struct Test {}

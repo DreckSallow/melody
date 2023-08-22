@@ -1,4 +1,7 @@
+use std::{cell::RefCell, rc::Rc};
+
 use anyhow::Result;
+use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Tabs},
@@ -7,25 +10,56 @@ use ratatui::{
 use crate::{
     component::{Component, FrameType},
     event::AppEvent,
-    tabs::player::PlayerTab,
+    tabs::{
+        log::{LogTab, LogsState},
+        player::PlayerTab,
+    },
 };
 
-type TabsType<'a> = Vec<(&'a str, Box<dyn Component>)>;
+pub struct AppState {
+    pub log: LogsState,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            log: Rc::new(RefCell::new(Vec::new())),
+        }
+    }
+}
+
+type TabComponent<'a> = (&'a str, Box<dyn Component<State = AppState>>);
+
+type TabsType<'a> = Vec<TabComponent<'a>>;
 
 pub struct App {
+    state: AppState,
     tabs: TabsType<'static>,
     tab_index: usize,
 }
 
 impl App {
     pub fn build() -> Result<Self> {
-        let tabs: TabsType<'static> = vec![("player", Box::new(PlayerTab::build()?))];
-        Ok(App { tabs, tab_index: 0 })
+        let state = AppState::default();
+        let player: TabComponent<'static> = ("player", Box::new(PlayerTab::build(&state)?));
+        let log: TabComponent<'static> = ("Log", Box::new(LogTab::build()?));
+        let tabs: TabsType<'static> = vec![player, log];
+        Ok(App {
+            tabs,
+            tab_index: 0,
+            state,
+        })
     }
 }
 
 impl Component for App {
-    fn render(&mut self, frame: &mut FrameType, area: ratatui::prelude::Rect) {
+    type State = Option<()>;
+    fn render(
+        &mut self,
+        frame: &mut FrameType,
+        area: ratatui::prelude::Rect,
+        _state: &Self::State,
+    ) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Percentage(10), Constraint::Percentage(90)])
@@ -41,13 +75,26 @@ impl Component for App {
 
         let tab_info = self.tabs.get_mut(self.tab_index);
         if let Some((_, section)) = tab_info {
-            section.render(frame, chunks[1]);
+            section.render(frame, chunks[1], &self.state);
         }
     }
-    fn on_event(&mut self, event: &AppEvent) {
+    fn on_event(&mut self, event: &AppEvent, _state: &mut Self::State) {
+        if let AppEvent::Key(key_event) = event {
+            if key_event.kind != KeyEventKind::Press {
+                return;
+            }
+
+            if let KeyCode::Tab = key_event.code {
+                if self.tab_index + 1 >= self.tabs.len() {
+                    self.tab_index = 0;
+                } else {
+                    self.tab_index += 1
+                }
+            }
+        }
         let tab_info = self.tabs.get_mut(self.tab_index);
         if let Some((_, section)) = tab_info {
-            section.on_event(event);
+            section.on_event(event, &mut self.state);
         }
     }
 }

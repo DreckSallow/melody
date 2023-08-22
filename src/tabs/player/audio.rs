@@ -1,6 +1,7 @@
 use std::{
     fs::File,
     io::BufReader,
+    rc::Rc,
     time::{Duration, Instant},
 };
 
@@ -13,9 +14,15 @@ use ratatui::{
 };
 use rodio::{Decoder, OutputStream, Sink};
 
-use crate::{component::Component, event::AppEvent, loaders::player::PlaylistSong};
+use crate::{
+    app::AppState,
+    component::{Component, FrameType},
+    event::AppEvent,
+    loaders::player::PlaylistSong,
+    tabs::log::LogsState,
+};
 
-use super::state::{PlayerState, PlayerStateAction};
+use super::state::PlayerState;
 
 #[derive(Debug)]
 struct Progress {
@@ -85,9 +92,7 @@ impl AudioHandler {
             progress: Progress::default(),
         })
     }
-    pub fn set_song(&mut self, song: Option<PlaylistSong>) {
-        self.song = song;
-    }
+
     pub fn pause(&mut self) {
         self.sink.pause();
         self.progress.pause();
@@ -110,6 +115,14 @@ impl AudioHandler {
 
         info
     }
+    pub fn set_song(&mut self, song_opt: Option<PlaylistSong>) {
+        if let Some(song) = &song_opt {
+            let file_song = BufReader::new(File::open(&song.path).expect("ERROR"));
+            let decoder = Decoder::new(file_song).expect("Decoder not read");
+            self.append(decoder);
+        }
+        self.song = song_opt;
+    }
     pub fn append(&mut self, decoder: Decoder<BufReader<File>>) {
         if !self.sink.empty() {
             self.sink.stop();
@@ -117,11 +130,8 @@ impl AudioHandler {
         self.sink.append(decoder);
         self.progress = Progress::default();
 
-        match self.status {
-            AudioStatus::Play => {
-                self.play();
-            }
-            _ => {}
+        if let AudioStatus::Play = self.status {
+            self.play();
         }
     }
     pub fn toggle_action(&mut self) {
@@ -134,45 +144,38 @@ impl AudioHandler {
 
 pub struct AudioPlayer {
     handler: AudioHandler,
+    logger: LogsState,
+    indices: Option<(usize, usize)>,
     pub is_focus: bool,
 }
 
 impl AudioPlayer {
-    pub fn build() -> Result<Self> {
+    pub fn build(
+        app_state: &AppState,
+        song: Option<PlaylistSong>,
+        indices: Option<(usize, usize)>,
+    ) -> Result<Self> {
+        let mut handler = AudioHandler::try_default()?;
+        handler.set_song(song);
+
         Ok(Self {
-            handler: AudioHandler::try_default()?,
+            handler,
             is_focus: false,
+            indices,
+            logger: Rc::clone(&app_state.log),
         })
     }
 }
 
-impl AudioPlayer {
-    pub fn on_change(&mut self, action: &PlayerStateAction, state: &PlayerState) {
-        if let PlayerStateAction::SetAudio = *action {
-            if state.playlist_selected.is_none() && state.audio_selected.is_none() {
-                return;
-            }
-            let (playlist_i, audio_i) = (
-                state.playlist_selected.unwrap(),
-                state.audio_selected.unwrap(),
-            );
-            if let Some(song) = state
-                .library
-                .playlists
-                .get(playlist_i)
-                .and_then(|p| p.songs.get(audio_i))
-            {
-                self.handler.set_song(Some(song.clone()));
-                let file_song = BufReader::new(File::open(&song.path).unwrap());
-                let decoder = Decoder::new(file_song).expect("PROBLEMAS!");
-                self.handler.append(decoder);
-            }
-        }
-    }
-}
-
 impl Component for AudioPlayer {
-    fn render(&mut self, frame: &mut crate::component::FrameType, area: ratatui::prelude::Rect) {
+    type State = PlayerState;
+    fn render(&mut self, frame: &mut FrameType, area: ratatui::prelude::Rect, state: &Self::State) {
+        if self.indices != state.indices() {
+            self.indices = state.indices();
+            self.handler.pause();
+            self.handler.set_song(state.selected_audio().cloned());
+        }
+
         let styled = if self.is_focus {
             Style::default().fg(Color::Cyan)
         } else {
@@ -209,17 +212,13 @@ impl Component for AudioPlayer {
                 let gauge = Gauge::default()
                     .gauge_style(Style::default().fg(Color::Red))
                     .percent(percent as u16)
-                    .label(format!(
-                        "{} / {}",
-                        seconds,
-                        song.duration.as_secs().to_string()
-                    ));
+                    .label(format!("{} / {}", seconds, song.duration.as_secs()));
                 frame.render_widget(gauge, chunks[1]);
             }
             None => {}
         }
     }
-    fn on_event(&mut self, event: &AppEvent) {
+    fn on_event(&mut self, event: &AppEvent, state: &mut Self::State) {
         match *event {
             AppEvent::Quit => {
                 self.handler.finish();

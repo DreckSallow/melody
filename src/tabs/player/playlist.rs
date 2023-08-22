@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::{
     prelude::Constraint,
@@ -9,63 +7,69 @@ use ratatui::{
 
 use crate::{component::Component, event::AppEvent, view::controllers::table::TableController};
 
-use super::state::{PlayerState, PlayerStateAction, PlayerStateReactive};
+use super::state::PlayerState;
 
 pub struct Playlist {
-    playlist_name: String,
-    songs: Vec<Vec<String>>,
+    playlist_index: Option<usize>,
     table_controller: TableController,
     pub is_focus: bool,
-    parent_state: Rc<RefCell<PlayerStateReactive>>,
 }
 
 impl Playlist {
-    pub fn build(songs: &[Vec<String>], state: &Rc<RefCell<PlayerStateReactive>>) -> Self {
-        let index = if songs.is_empty() { None } else { Some(0) };
+    pub fn build(playlist: Option<usize>, index: Option<usize>) -> Self {
         Self {
-            playlist_name: "List".into(),
-            songs: songs.into(),
+            playlist_index: playlist,
             table_controller: TableController::default().with_select(index),
             is_focus: false,
-            parent_state: Rc::clone(&state),
-        }
-    }
-    pub fn set_songs(&mut self, songs: &[Vec<String>]) {
-        self.songs = songs.into();
-        let index = if songs.is_empty() { None } else { Some(0) };
-        self.table_controller.select(index);
-    }
-    pub fn list_changes(&mut self, action: &PlayerStateAction, state: &PlayerState) {
-        if let PlayerStateAction::SetPlaylist = *action {
-            if let Some(ref index_play) = state.playlist_selected {
-                if let Some(playlist) = state.library.playlists.get(*index_play) {
-                    let songs: Vec<Vec<String>> = playlist
-                        .songs
-                        .iter()
-                        .map(|song| {
-                            let copy_song = song.clone();
-                            vec![copy_song.title.unwrap_or("---".into())]
-                        })
-                        .collect();
-                    self.playlist_name = playlist.name.clone();
-                    self.set_songs(&songs);
-                    self.is_focus = true;
-                }
-            }
         }
     }
 }
 
 impl Component for Playlist {
-    fn render(&mut self, frame: &mut crate::component::FrameType, area: ratatui::prelude::Rect) {
+    type State = PlayerState;
+    fn render(
+        &mut self,
+        frame: &mut crate::component::FrameType,
+        area: ratatui::prelude::Rect,
+        state: &Self::State,
+    ) {
+        if self.playlist_index != state.playlist_selected {
+            self.playlist_index = state.playlist_selected.clone();
+            let index =
+                state.selected_playlist().and_then(
+                    |p| {
+                        if p.songs.len() > 0 {
+                            Some(0)
+                        } else {
+                            None
+                        }
+                    },
+                );
+        }
+
         let styled = if self.is_focus {
             Style::default().fg(Color::Cyan)
         } else {
             Style::default()
         };
+        let data = if let Some(playlist) = state
+            .library
+            .playlists
+            .get(state.playlist_selected.unwrap_or(0))
+        {
+            let songs_info: Vec<Vec<String>> = playlist
+                .songs
+                .iter()
+                .map(|s| vec![s.file_name.clone().unwrap_or("----".into())])
+                .collect();
+
+            (playlist.name.clone(), songs_info)
+        } else {
+            ("List".into(), Vec::new())
+        };
 
         let playlist_block = Block::default()
-            .title(self.playlist_name.as_str())
+            .title(data.0.as_str())
             .borders(Borders::ALL)
             .border_style(styled);
 
@@ -74,7 +78,7 @@ impl Component for Playlist {
             .height(1)
             .style(Style::default().fg(ratatui::style::Color::Blue));
 
-        let items = self.songs.iter().map(|item| {
+        let items = data.1.iter().map(|item| {
             let cells = item.iter().map(|text| Cell::from(text.clone()));
             Row::new(cells).height(1)
         });
@@ -92,29 +96,23 @@ impl Component for Playlist {
         frame.render_stateful_widget(table_block, area, self.table_controller.state())
     }
 
-    fn on_event(&mut self, event: &AppEvent) {
+    fn on_event(&mut self, event: &AppEvent, state: &mut Self::State) {
         match *event {
             AppEvent::Key(key_event) => {
                 if key_event.kind != KeyEventKind::Press {
                     return;
                 }
+                let songs = state
+                    .library
+                    .playlists
+                    .get(state.playlist_selected.unwrap_or(0))
+                    .map(|p| p.songs.len())
+                    .unwrap_or(0);
                 match key_event.code {
-                    KeyCode::Down => self.table_controller.next(self.songs.len()),
-                    KeyCode::Up => self.table_controller.previous(self.songs.len()),
+                    KeyCode::Down => self.table_controller.next(songs),
+                    KeyCode::Up => self.table_controller.previous(songs),
                     KeyCode::Enter => {
-                        // let song_opt = &self
-                        //     .table_controller
-                        //     .selected()
-                        //     .and_then(|index| self.songs.get(index))
-                        //     .and_then(|play| play.get(0).cloned());
-
-                        self.parent_state.borrow_mut().dispatch(
-                            PlayerStateAction::SetAudio,
-                            |state| {
-                                state.audio_selected = self.table_controller.selected();
-                                // state.audio_selected = song_opt.clone()
-                            },
-                        );
+                        state.audio_selected = self.table_controller.selected();
                     }
                     _ => {}
                 }

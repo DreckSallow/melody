@@ -36,8 +36,8 @@ impl TryFrom<RawToml> for PlaylistsData {
 
             for path_song in raw_playlist.songs {
                 let audio_song = get_audio_data(&path_song);
-                if audio_song.is_ok() {
-                    playlist.songs.push(audio_song.unwrap());
+                if let Ok(audio) = audio_song {
+                    playlist.songs.push(audio);
                 }
             }
 
