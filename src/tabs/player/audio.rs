@@ -12,14 +12,14 @@ use ratatui::{
     style::{Color, Style},
     widgets::{block::Title, Block, Borders, Gauge, Paragraph},
 };
-use rodio::{Decoder, OutputStream, Sink};
+use rodio::{Decoder, OutputStream, Sink, Source};
 
 use crate::{
     app::AppState,
     component::{Component, FrameType},
     event::AppEvent,
     loaders::player::PlaylistSong,
-    tabs::log::LogsState,
+    tabs::log::{LogMessage, LogsState},
 };
 
 use super::state::PlayerState;
@@ -115,13 +115,27 @@ impl AudioHandler {
 
         info
     }
-    pub fn set_song(&mut self, song_opt: Option<PlaylistSong>) {
+    pub fn is_end_song(&self) -> bool {
+        if let Some(ref song) = self.song {
+            let p = self.progress.percentage(song.duration);
+            if p >= 100 {
+                true
+            } else {
+                false
+            }
+        } else {
+            true
+        }
+    }
+
+    pub fn set_song(&mut self, song_opt: Option<PlaylistSong>) -> Result<()> {
         if let Some(song) = &song_opt {
-            let file_song = BufReader::new(File::open(&song.path).expect("ERROR"));
-            let decoder = Decoder::new(file_song).expect("Decoder not read");
+            let file_song = BufReader::new(File::open(&song.path)?);
+            let decoder = Decoder::new(file_song)?;
             self.append(decoder);
         }
         self.song = song_opt;
+        Ok(())
     }
     pub fn append(&mut self, decoder: Decoder<BufReader<File>>) {
         if !self.sink.empty() {
@@ -155,37 +169,75 @@ impl AudioPlayer {
         song: Option<PlaylistSong>,
         indices: Option<(usize, usize)>,
     ) -> Result<Self> {
+        let logger = Rc::clone(&app_state.log);
         let mut handler = AudioHandler::try_default()?;
-        handler.set_song(song);
+        if let Err(e) = handler.set_song(song) {
+            logger.borrow_mut().push(LogMessage::Error(e.to_string()))
+        }
+        logger
+            .borrow_mut()
+            .push(LogMessage::Info("SET SONG".into()));
 
         Ok(Self {
             handler,
             is_focus: false,
             indices,
-            logger: Rc::clone(&app_state.log),
+            logger,
         })
+    }
+    fn on_tick(&mut self, state: &mut PlayerState) {
+        if self.indices != state.indices() {
+            let indices_opt = state.indices().and_then(|i| self.indices.map(|si| (si, i)));
+            if let Some((state_indices, indices)) = indices_opt {
+                if state_indices.0 != indices.0 {
+                    // The playlist was changed.
+                    self.handler.pause();
+                }
+            }
+
+            self.indices = state.indices();
+            if let Err(e) = self.handler.set_song(state.selected_audio().cloned()) {
+                self.logger
+                    .borrow_mut()
+                    .push(LogMessage::Error(e.to_string()))
+            };
+        }
+        if self.handler.is_end_song() {
+            if let Some((p_i, s_i)) = self.indices {
+                if state.library.playlists[p_i].songs.get(s_i + 1).is_some() {
+                    state.audio_selected = Some(s_i + 1);
+                    if let Err(e) = self.handler.set_song(state.selected_audio().cloned()) {
+                        self.logger
+                            .borrow_mut()
+                            .push(LogMessage::Error(e.to_string()))
+                    }
+                };
+            }
+        }
     }
 }
 
 impl Component for AudioPlayer {
     type State = PlayerState;
-    fn render(&mut self, frame: &mut FrameType, area: ratatui::prelude::Rect, state: &Self::State) {
-        if self.indices != state.indices() {
-            self.indices = state.indices();
-            self.handler.pause();
-            self.handler.set_song(state.selected_audio().cloned());
-        }
-
+    fn render(
+        &mut self,
+        frame: &mut FrameType,
+        area: ratatui::prelude::Rect,
+        state: &mut Self::State,
+    ) {
+        self.on_tick(state);
         let styled = if self.is_focus {
             Style::default().fg(Color::Cyan)
         } else {
             Style::default()
         };
-        let block_title = if self.handler.song.is_some() {
-            "Now Playing"
-        } else {
-            "Not song"
-        };
+
+        let block_title = self
+            .handler
+            .song
+            .as_ref()
+            .and(Some("Now Playing"))
+            .unwrap_or("Not song");
 
         let block = Block::default()
             .title(Title::from(block_title).alignment(Alignment::Center))
@@ -218,7 +270,7 @@ impl Component for AudioPlayer {
             None => {}
         }
     }
-    fn on_event(&mut self, event: &AppEvent, state: &mut Self::State) {
+    fn on_event(&mut self, event: &AppEvent, _state: &mut Self::State) {
         match *event {
             AppEvent::Quit => {
                 self.handler.finish();

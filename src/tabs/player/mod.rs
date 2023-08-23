@@ -26,19 +26,18 @@ pub struct PlayerTab {
 impl PlayerTab {
     pub fn build(app_state: &AppState) -> Result<Self> {
         let mut state = PlayerState::create(load_playlists()?);
-        if state.library.playlists.len() > 0 {
+        if !state.library.playlists.is_empty() {
             state.playlist_selected = Some(0);
         }
-
         let mut library = PlayerLibrary::build(state.playlist_selected);
         library.is_focus = true;
 
         if let Some(playlist) = state.selected_playlist() {
-            if playlist.songs.len() > 0 {
+            if !playlist.songs.is_empty() {
                 state.audio_selected = Some(0);
             }
         }
-        let playlist = Playlist::build(state.playlist_selected, state.audio_selected);
+        let playlist = Playlist::build(state.indices(), state.audio_selected);
         let audio =
             AudioPlayer::build(app_state, state.selected_audio().cloned(), state.indices())?;
 
@@ -57,7 +56,7 @@ impl Component for PlayerTab {
         &mut self,
         frame: &mut FrameType,
         area: ratatui::prelude::Rect,
-        _state: &Self::State,
+        _state: &mut Self::State,
     ) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -69,11 +68,11 @@ impl Component for PlayerTab {
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .split(chunks[0]);
         self.library_section
-            .render(frame, content_chunks[0], &self.state);
+            .render(frame, content_chunks[0], &mut self.state);
         self.playlist_section
-            .render(frame, content_chunks[1], &self.state);
+            .render(frame, content_chunks[1], &mut self.state);
 
-        self.audio_section.render(frame, chunks[1], &self.state)
+        self.audio_section.render(frame, chunks[1], &mut self.state)
     }
     fn on_event(&mut self, event: &AppEvent, _state: &mut Self::State) {
         match *event {

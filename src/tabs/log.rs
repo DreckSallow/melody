@@ -3,6 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use anyhow::Result;
 use ratatui::{
     prelude::Rect,
+    style::{Color, Style},
     text::Line,
     widgets::{Block, Borders, Paragraph},
 };
@@ -27,7 +28,12 @@ impl LogTab {
 
 impl Component for LogTab {
     type State = AppState;
-    fn render(&mut self, frame: &mut crate::component::FrameType, area: Rect, state: &Self::State) {
+    fn render(
+        &mut self,
+        frame: &mut crate::component::FrameType,
+        area: Rect,
+        state: &mut Self::State,
+    ) {
         let block = Block::default().borders(Borders::ALL).title("Logs");
 
         let lines: Vec<Line> = state
@@ -40,7 +46,14 @@ impl Component for LogTab {
                     LogMessage::Warn(t) => t.to_string(),
                     LogMessage::Error(t) => t.to_string(),
                 };
-                Line::from(log_text)
+                let styled = match log {
+                    LogMessage::Info(_) => Color::Green,
+                    LogMessage::Warn(_) => Color::Yellow,
+                    LogMessage::Error(_) => Color::Red,
+                };
+                let mut line = Line::from(log_text);
+                line.patch_style(Style::default().fg(styled));
+                line
             })
             .collect();
 

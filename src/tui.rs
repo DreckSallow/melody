@@ -44,7 +44,7 @@ impl TuiApp {
         let mut app = App::build()?;
         loop {
             self.terminal
-                .draw(|frame| app.render(frame, frame.size(), &None))?;
+                .draw(|frame| app.render(frame, frame.size(), &mut None))?;
             if event::poll(Duration::from_millis(250))? {
                 if let Event::Key(key) = event::read()? {
                     if KeyCode::Char('q') == key.code {

@@ -10,17 +10,24 @@ use crate::{component::Component, event::AppEvent, view::controllers::table::Tab
 use super::state::PlayerState;
 
 pub struct Playlist {
-    playlist_index: Option<usize>,
+    indices: Option<(usize, usize)>,
     table_controller: TableController,
     pub is_focus: bool,
 }
 
 impl Playlist {
-    pub fn build(playlist: Option<usize>, index: Option<usize>) -> Self {
+    pub fn build(playlist: Option<(usize, usize)>, index: Option<usize>) -> Self {
         Self {
-            playlist_index: playlist,
+            indices: playlist,
             table_controller: TableController::default().with_select(index),
             is_focus: false,
+        }
+    }
+    pub fn on_tick(&mut self, state: &PlayerState) {
+        if self.indices != state.indices() {
+            self.table_controller.select(state.audio_selected);
+            self.indices = state.indices()
+            // self.playlist_index = state.playlist_selected;
         }
     }
 }
@@ -31,21 +38,9 @@ impl Component for Playlist {
         &mut self,
         frame: &mut crate::component::FrameType,
         area: ratatui::prelude::Rect,
-        state: &Self::State,
+        state: &mut Self::State,
     ) {
-        if self.playlist_index != state.playlist_selected {
-            self.playlist_index = state.playlist_selected.clone();
-            let index =
-                state.selected_playlist().and_then(
-                    |p| {
-                        if p.songs.len() > 0 {
-                            Some(0)
-                        } else {
-                            None
-                        }
-                    },
-                );
-        }
+        self.on_tick(state);
 
         let styled = if self.is_focus {
             Style::default().fg(Color::Cyan)

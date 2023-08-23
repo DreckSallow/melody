@@ -58,7 +58,7 @@ impl Component for App {
         &mut self,
         frame: &mut FrameType,
         area: ratatui::prelude::Rect,
-        _state: &Self::State,
+        _state: &mut Self::State,
     ) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -75,7 +75,7 @@ impl Component for App {
 
         let tab_info = self.tabs.get_mut(self.tab_index);
         if let Some((_, section)) = tab_info {
-            section.render(frame, chunks[1], &self.state);
+            section.render(frame, chunks[1], &mut self.state);
         }
     }
     fn on_event(&mut self, event: &AppEvent, _state: &mut Self::State) {

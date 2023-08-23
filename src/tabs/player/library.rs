@@ -1,5 +1,3 @@
-// use anyhow::Result;
-
 use crate::{
     component::{Component, FrameType},
     event::AppEvent,
@@ -29,7 +27,12 @@ impl PlayerLibrary {
 
 impl Component for PlayerLibrary {
     type State = PlayerState;
-    fn render(&mut self, frame: &mut FrameType, area: ratatui::prelude::Rect, state: &Self::State) {
+    fn render(
+        &mut self,
+        frame: &mut FrameType,
+        area: ratatui::prelude::Rect,
+        state: &mut Self::State,
+    ) {
         let styled = if self.is_focus {
             Style::default().fg(Color::Cyan)
         } else {
@@ -64,11 +67,13 @@ impl Component for PlayerLibrary {
                     KeyCode::Up => self.list_controller.previous(state.library.playlists.len()),
                     KeyCode::Enter => {
                         state.playlist_selected = self.list_controller.selected();
-                        if let Some(length) = state.selected_playlist().map(|p| p.songs.len()) {
-                            if length > 0 {
-                                state.audio_selected = Some(0);
+                        state.audio_selected = state.selected_playlist().and_then(|p| {
+                            if !p.songs.is_empty() {
+                                Some(0)
+                            } else {
+                                None
                             }
-                        }
+                        });
                     }
                     _ => {}
                 }
