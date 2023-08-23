@@ -1,7 +1,3 @@
-// use anyhow::Result;
-
-use std::{cell::RefCell, rc::Rc};
-
 use crate::{
     component::{Component, FrameType},
     event::AppEvent,
@@ -13,29 +9,30 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
 };
 
-use super::state::{PlayerStateAction, PlayerStateReactive};
+use super::state::PlayerState;
 
 pub struct PlayerLibrary {
-    playlists: Vec<String>,
     list_controller: ListController,
     pub is_focus: bool,
-    parent_state: Rc<RefCell<PlayerStateReactive>>,
 }
 
 impl PlayerLibrary {
-    pub fn build(playlists: &[String], state: &Rc<RefCell<PlayerStateReactive>>) -> Self {
-        let index = if playlists.is_empty() { None } else { Some(0) };
+    pub fn build(index: Option<usize>) -> Self {
         Self {
-            playlists: playlists.into(),
             list_controller: ListController::default().with_select(index),
             is_focus: false,
-            parent_state: Rc::clone(&state),
         }
     }
 }
 
 impl Component for PlayerLibrary {
-    fn render(&mut self, frame: &mut FrameType, area: ratatui::prelude::Rect) {
+    type State = PlayerState;
+    fn render(
+        &mut self,
+        frame: &mut FrameType,
+        area: ratatui::prelude::Rect,
+        state: &mut Self::State,
+    ) {
         let styled = if self.is_focus {
             Style::default().fg(Color::Cyan)
         } else {
@@ -46,10 +43,11 @@ impl Component for PlayerLibrary {
             .borders(Borders::ALL)
             .border_style(styled);
 
-        let items: Vec<ListItem> = self
+        let items: Vec<ListItem> = state
+            .library
             .playlists
             .iter()
-            .map(|playlist| ListItem::new(playlist.as_str()))
+            .map(|playlist| ListItem::new(playlist.name.as_str()))
             .collect();
 
         let list_block = List::new(items)
@@ -58,22 +56,25 @@ impl Component for PlayerLibrary {
             .highlight_symbol("🚀 ");
         frame.render_stateful_widget(list_block, area, self.list_controller.state())
     }
-    fn on_event(&mut self, event: &AppEvent) {
+    fn on_event(&mut self, event: &AppEvent, state: &mut Self::State) {
         match *event {
             AppEvent::Key(key_event) => {
                 if key_event.kind != KeyEventKind::Press {
                     return;
                 }
                 match key_event.code {
-                    KeyCode::Down => self.list_controller.next(self.playlists.len()),
-                    KeyCode::Up => self.list_controller.previous(self.playlists.len()),
-                    KeyCode::Enter => self.parent_state.borrow_mut().dispatch(
-                        PlayerStateAction::SetPlaylist,
-                        |state| {
-                            self.is_focus = false;
-                            state.playlist_selected = self.list_controller.selected();
-                        },
-                    ),
+                    KeyCode::Down => self.list_controller.next(state.library.playlists.len()),
+                    KeyCode::Up => self.list_controller.previous(state.library.playlists.len()),
+                    KeyCode::Enter => {
+                        state.playlist_selected = self.list_controller.selected();
+                        state.audio_selected = state.selected_playlist().and_then(|p| {
+                            if !p.songs.is_empty() {
+                                Some(0)
+                            } else {
+                                None
+                            }
+                        });
+                    }
                     _ => {}
                 }
             }
