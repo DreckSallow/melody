@@ -3,12 +3,12 @@ use crate::{
     event::AppEvent,
     select,
     utils::Condition,
-    view::controllers::list::ListController,
+    view::{controllers::list::ListController, ui::ui_block},
 };
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::{
     style::{Color, Style},
-    widgets::{Block, Borders, List, ListItem},
+    widgets::{List, ListItem},
 };
 
 use super::state::PlayerState;
@@ -35,12 +35,10 @@ impl Component for PlayerLibrary {
         area: ratatui::prelude::Rect,
         state: &mut Self::State,
     ) {
-        let focus_color = select!(self.is_focus, Color::Cyan, Color::White);
-        let section = Block::default()
-            .title("Playlist")
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(focus_color));
-
+        let section = ui_block(
+            "Playlists",
+            select!(self.is_focus, Color::Cyan, Color::White),
+        );
         let items: Vec<ListItem> = state
             .library
             .playlists

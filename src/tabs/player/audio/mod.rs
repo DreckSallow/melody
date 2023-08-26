@@ -1,10 +1,10 @@
-use crate::utils::Condition;
+use crate::{utils::Condition, view::ui::ui_block};
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::{
     prelude::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
-    widgets::{block::Title, Block, Borders, Gauge, Paragraph},
+    widgets::{block::Title, Gauge, Paragraph},
 };
 use std::rc::Rc;
 
@@ -89,18 +89,12 @@ impl Component for AudioPlayer {
         state: &mut Self::State,
     ) {
         self.on_tick(state);
-        let styled = select!(
-            self.is_focus,
-            Style::default().fg(Color::Cyan),
-            Style::default()
+
+        let block = ui_block(
+            Title::from(select!(self.handler.song(), "Now Playing", "Not Song"))
+                .alignment(Alignment::Center),
+            select!(self.is_focus, Color::Cyan, Color::White),
         );
-
-        let block_title = select!(self.handler.song(), "Now Playing", "Not Song");
-
-        let block = Block::default()
-            .title(Title::from(block_title).alignment(Alignment::Center))
-            .borders(Borders::ALL)
-            .style(styled);
         frame.render_widget(block, area);
 
         match self.handler.song().cloned() {

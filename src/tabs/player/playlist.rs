@@ -2,12 +2,15 @@ use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::{
     prelude::Constraint,
     style::{Color, Style},
-    widgets::{Block, Borders, Cell, Row, Table},
+    widgets::{Cell, Row, Table},
 };
 
 use crate::{
-    component::Component, event::AppEvent, select, utils::Condition,
-    view::controllers::table::TableController,
+    component::Component,
+    event::AppEvent,
+    select,
+    utils::Condition,
+    view::{controllers::table::TableController, ui::ui_block},
 };
 
 use super::state::PlayerState;
@@ -45,7 +48,6 @@ impl Component for Playlist {
     ) {
         self.on_tick(state);
 
-        let focus_color = select!(self.is_focus, Color::Cyan, Color::White);
         let data = if let Some(playlist) = state
             .library
             .playlists
@@ -62,11 +64,10 @@ impl Component for Playlist {
             ("List".into(), Vec::new())
         };
 
-        let playlist_block = Block::default()
-            .title(data.0.as_str())
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(focus_color));
-
+        let playlist_block = ui_block(
+            data.0.as_str(),
+            select!(self.is_focus, Color::Cyan, Color::White),
+        );
         let headers_cells = ["Name"].iter().map(|header| Cell::from(*header));
         let header = Row::new(headers_cells)
             .height(1)
