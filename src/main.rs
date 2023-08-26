@@ -7,6 +7,7 @@ mod event;
 mod loaders;
 mod tabs;
 mod tui;
+mod utils;
 mod view;
 use tui::TuiApp;
 

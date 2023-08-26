@@ -1,5 +1,7 @@
 use ratatui::widgets::ListState;
 
+use crate::{select, utils::Condition};
+
 #[derive(Default)]
 pub struct ListController {
     state: ListState,
@@ -29,11 +31,7 @@ impl ListController {
 
         let i = match self.state.selected() {
             Some(i) => {
-                if i >= len - 1 {
-                    0
-                } else {
-                    i + 1
-                }
+                select!(i >= len - 1, 0, i + 1)
             }
             None => 0,
         };
@@ -46,11 +44,7 @@ impl ListController {
         }
         let i = match self.state.selected() {
             Some(i) => {
-                if i == 0 {
-                    len - 1
-                } else {
-                    i - 1
-                }
+                select!(i == 0, len - 1, i - 1)
             }
             None => 0,
         };

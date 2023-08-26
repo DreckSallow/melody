@@ -5,7 +5,10 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Row, Table},
 };
 
-use crate::{component::Component, event::AppEvent, view::controllers::table::TableController};
+use crate::{
+    component::Component, event::AppEvent, select, utils::Condition,
+    view::controllers::table::TableController,
+};
 
 use super::state::PlayerState;
 
@@ -42,11 +45,7 @@ impl Component for Playlist {
     ) {
         self.on_tick(state);
 
-        let styled = if self.is_focus {
-            Style::default().fg(Color::Cyan)
-        } else {
-            Style::default()
-        };
+        let focus_color = select!(self.is_focus, Color::Cyan, Color::White);
         let data = if let Some(playlist) = state
             .library
             .playlists
@@ -66,7 +65,7 @@ impl Component for Playlist {
         let playlist_block = Block::default()
             .title(data.0.as_str())
             .borders(Borders::ALL)
-            .border_style(styled);
+            .border_style(Style::default().fg(focus_color));
 
         let headers_cells = ["Name"].iter().map(|header| Cell::from(*header));
         let header = Row::new(headers_cells)

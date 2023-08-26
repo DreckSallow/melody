@@ -1,6 +1,8 @@
 use crate::{
     component::{Component, FrameType},
     event::AppEvent,
+    select,
+    utils::Condition,
     view::controllers::list::ListController,
 };
 use crossterm::event::{KeyCode, KeyEventKind};
@@ -33,15 +35,11 @@ impl Component for PlayerLibrary {
         area: ratatui::prelude::Rect,
         state: &mut Self::State,
     ) {
-        let styled = if self.is_focus {
-            Style::default().fg(Color::Cyan)
-        } else {
-            Style::default()
-        };
+        let focus_color = select!(self.is_focus, Color::Cyan, Color::White);
         let section = Block::default()
             .title("Playlist")
             .borders(Borders::ALL)
-            .border_style(styled);
+            .border_style(Style::default().fg(focus_color));
 
         let items: Vec<ListItem> = state
             .library
@@ -67,13 +65,9 @@ impl Component for PlayerLibrary {
                     KeyCode::Up => self.list_controller.previous(state.library.playlists.len()),
                     KeyCode::Enter => {
                         state.playlist_selected = self.list_controller.selected();
-                        state.audio_selected = state.selected_playlist().and_then(|p| {
-                            if !p.songs.is_empty() {
-                                Some(0)
-                            } else {
-                                None
-                            }
-                        });
+                        state.audio_selected = state
+                            .selected_playlist()
+                            .and_then(|p| (!p.songs.is_empty()).then_some(0));
                     }
                     _ => {}
                 }
