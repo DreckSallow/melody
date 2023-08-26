@@ -18,11 +18,22 @@ pub enum LogMessage {
     Error(String),
 }
 
-pub struct LogTab {}
+impl LogMessage {
+    pub fn text(&self) -> String {
+        let s = match self {
+            LogMessage::Info(s) => s,
+            LogMessage::Warn(s) => s,
+            LogMessage::Error(s) => s,
+        };
+        s.clone()
+    }
+}
+
+pub struct LogTab;
 
 impl LogTab {
     pub fn build() -> Result<Self> {
-        Ok(Self {})
+        Ok(Self)
     }
 }
 
@@ -41,17 +52,12 @@ impl Component for LogTab {
             .borrow()
             .iter()
             .map(|log| {
-                let log_text = match log {
-                    LogMessage::Info(t) => t.to_string(),
-                    LogMessage::Warn(t) => t.to_string(),
-                    LogMessage::Error(t) => t.to_string(),
-                };
                 let styled = match log {
                     LogMessage::Info(_) => Color::Green,
                     LogMessage::Warn(_) => Color::Yellow,
                     LogMessage::Error(_) => Color::Red,
                 };
-                let mut line = Line::from(log_text);
+                let mut line = Line::from(log.text().clone());
                 line.patch_style(Style::default().fg(styled));
                 line
             })
