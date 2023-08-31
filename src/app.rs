@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEventKind};
@@ -8,10 +8,12 @@ use ratatui::{
 };
 
 use crate::{
-    component::{Component, FrameType},
+    component::{Component, FinishableComp, FrameType},
+    data::config::ConfigData,
     event::AppEvent,
     tabs::{
-        log::{LogTab, LogsState},
+        log::{LogMessage, LogTab, LogsState},
+        manager::PlaylistManager,
         player::PlayerTab,
     },
 };
@@ -28,7 +30,7 @@ impl Default for AppState {
     }
 }
 
-type TabComponent<'a> = (&'a str, Box<dyn Component<State = AppState>>);
+type TabComponent<'a> = (&'a str, Box<dyn FinishableComp<Res = (), State = AppState>>);
 
 type TabsType<'a> = Vec<TabComponent<'a>>;
 
@@ -36,18 +38,27 @@ pub struct App {
     state: AppState,
     tabs: TabsType<'static>,
     tab_index: usize,
+    music_path: PathBuf,
 }
 
 impl App {
     pub fn build() -> Result<Self> {
         let state = AppState::default();
         let player: TabComponent<'static> = ("player", Box::new(PlayerTab::build(&state)?));
-        let log: TabComponent<'static> = ("Log", Box::new(LogTab::build()?));
-        let tabs: TabsType<'static> = vec![player, log];
+        let log: TabComponent<'static> = ("Log", Box::new(LogTab::build()));
+
+        let config = ConfigData::load()?;
+
+        let manager: TabComponent<'static> = (
+            "Manager",
+            Box::new(PlaylistManager::build(&config.music_path)?),
+        );
+        let tabs: TabsType<'static> = vec![player, manager, log];
         Ok(App {
             tabs,
             tab_index: 0,
             state,
+            music_path: config.music_path,
         })
     }
 }
@@ -85,10 +96,44 @@ impl Component for App {
             }
 
             if let KeyCode::Tab = key_event.code {
+                let finish_res = self.tabs[self.tab_index].1.finish();
+                // Change the tab index
                 if self.tab_index + 1 >= self.tabs.len() {
                     self.tab_index = 0;
                 } else {
                     self.tab_index += 1
+                }
+
+                let finish_res = match finish_res {
+                    Ok(()) => {
+                        // Create new Tab
+                        match self.tab_index {
+                            0 => PlayerTab::build(&self.state).map(|p| {
+                                let tb: TabComponent<'static> = ("Player", Box::new(p));
+                                tb
+                            }),
+                            1 => PlaylistManager::build(&self.music_path).map(|p| {
+                                let tb: TabComponent<'static> = ("Manager", Box::new(p));
+                                tb
+                            }),
+                            2 => {
+                                let tab: TabComponent<'static> = ("Log", Box::new(LogTab::build()));
+                                Ok(tab)
+                            }
+                            _ => {
+                                unreachable!()
+                            }
+                        }
+                    }
+                    Err(e) => Err(e),
+                };
+                match finish_res {
+                    Ok(tab) => self.tabs[self.tab_index] = tab,
+                    Err(e) => self
+                        .state
+                        .log
+                        .borrow_mut()
+                        .push(LogMessage::Error(e.to_string())),
                 }
             }
         }

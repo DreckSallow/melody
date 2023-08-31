@@ -40,7 +40,6 @@ impl Component for PlayerLibrary {
             select!(self.is_focus, Color::Cyan, Color::White),
         );
         let items: Vec<ListItem> = state
-            .library
             .playlists
             .iter()
             .map(|playlist| ListItem::new(playlist.name.as_str()))
@@ -59,8 +58,8 @@ impl Component for PlayerLibrary {
                     return;
                 }
                 match key_event.code {
-                    KeyCode::Down => self.list_controller.next(state.library.playlists.len()),
-                    KeyCode::Up => self.list_controller.previous(state.library.playlists.len()),
+                    KeyCode::Down => self.list_controller.next(state.playlists.len()),
+                    KeyCode::Up => self.list_controller.previous(state.playlists.len()),
                     KeyCode::Enter => {
                         state.playlist_selected = self.list_controller.selected();
                         state.audio_selected = state

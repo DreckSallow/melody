@@ -4,9 +4,9 @@ use ratatui::prelude::*;
 
 use crate::{
     app::AppState,
-    component::{Component, FrameType},
+    component::{Component, FinishableComp, FrameType},
     event::AppEvent,
-    loaders::load_playlists,
+    handlers::music::MusicHandler,
 };
 
 use self::{audio::AudioPlayer, library::PlayerLibrary, playlist::Playlist, state::PlayerState};
@@ -25,8 +25,8 @@ pub struct PlayerTab {
 
 impl PlayerTab {
     pub fn build(app_state: &AppState) -> Result<Self> {
-        let mut state = PlayerState::create(load_playlists()?);
-        if !state.library.playlists.is_empty() {
+        let mut state = PlayerState::create(MusicHandler::load_playlists()?);
+        if !state.playlists.is_empty() {
             state.playlist_selected = Some(0);
         }
         let mut library = PlayerLibrary::build(state.playlist_selected);
@@ -114,5 +114,13 @@ impl Component for PlayerTab {
                 }
             }
         }
+    }
+}
+
+impl FinishableComp for PlayerTab {
+    type Res = ();
+    fn finish(&mut self) -> Result<Self::Res> {
+        self.audio_section.finish();
+        Ok(())
     }
 }

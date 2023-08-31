@@ -48,10 +48,7 @@ impl Component for Playlist {
     ) {
         self.on_tick(state);
 
-        let data = if let Some(playlist) = state
-            .library
-            .playlists
-            .get(state.playlist_selected.unwrap_or(0))
+        let data = if let Some(playlist) = state.playlists.get(state.playlist_selected.unwrap_or(0))
         {
             let songs_info: Vec<Vec<String>> = playlist
                 .songs
@@ -81,7 +78,6 @@ impl Component for Playlist {
             .header(header)
             .block(playlist_block)
             .highlight_style(Style::default().bg(ratatui::style::Color::Cyan))
-            .highlight_symbol(">")
             .widths(&[
                 Constraint::Percentage(70),
                 Constraint::Percentage(15),
@@ -98,14 +94,13 @@ impl Component for Playlist {
                     return;
                 }
                 let songs = state
-                    .library
                     .playlists
                     .get(state.playlist_selected.unwrap_or(0))
                     .map(|p| p.songs.len())
                     .unwrap_or(0);
                 match key_event.code {
-                    KeyCode::Down => self.table_controller.next(songs),
-                    KeyCode::Up => self.table_controller.previous(songs),
+                    KeyCode::Down => self.table_controller.next(songs * 13),
+                    KeyCode::Up => self.table_controller.previous(songs * 13),
                     KeyCode::Enter => {
                         state.audio_selected = self.table_controller.selected();
                     }
