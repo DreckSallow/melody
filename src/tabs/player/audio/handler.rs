@@ -7,7 +7,7 @@ use std::{
 use anyhow::Result;
 use rodio::{Decoder, OutputStream, Sink};
 
-use crate::{loaders::player::PlaylistSong, select, utils::Condition};
+use crate::{handlers::music::PlaylistSong, select, utils::Condition};
 
 #[derive(Debug)]
 pub struct Progress {

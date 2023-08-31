@@ -8,7 +8,10 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::{app::AppState, component::Component};
+use crate::{
+    app::AppState,
+    component::{Component, FinishableComp},
+};
 
 pub type LogsState = Rc<RefCell<Vec<LogMessage>>>;
 
@@ -32,8 +35,8 @@ impl LogMessage {
 pub struct LogTab;
 
 impl LogTab {
-    pub fn build() -> Result<Self> {
-        Ok(Self)
+    pub fn build() -> Self {
+        Self
     }
 }
 
@@ -68,4 +71,11 @@ impl Component for LogTab {
         frame.render_widget(paragraph, area);
     }
     fn on_event(&mut self, _event: &crate::event::AppEvent, _state: &mut Self::State) {}
+}
+
+impl FinishableComp for LogTab {
+    type Res = ();
+    fn finish(&mut self) -> Result<Self::Res> {
+        Ok(())
+    }
 }

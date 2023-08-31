@@ -1,23 +1,23 @@
-use crate::loaders::player::{PlaylistInfo, PlaylistSong, PlaylistsData};
+use crate::handlers::music::{PlaylistInfo, PlaylistSong};
 
 #[derive(Debug)]
 pub struct PlayerState {
-    pub library: PlaylistsData,
+    pub playlists: Vec<PlaylistInfo>,
     pub playlist_selected: Option<usize>,
     pub audio_selected: Option<usize>,
 }
 
 impl PlayerState {
-    pub fn create(playlist_data: PlaylistsData) -> Self {
+    pub fn create(playlists: Vec<PlaylistInfo>) -> Self {
         Self {
-            library: playlist_data,
+            playlists,
             playlist_selected: None,
             audio_selected: None,
         }
     }
     pub fn selected_playlist(&self) -> Option<&PlaylistInfo> {
         match self.playlist_selected {
-            Some(index) => self.library.playlists.get(index),
+            Some(index) => self.playlists.get(index),
             None => None,
         }
     }

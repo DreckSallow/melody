@@ -1,4 +1,4 @@
-use crate::{utils::Condition, view::ui::ui_block};
+use crate::{handlers::music::PlaylistSong, utils::Condition, view::ui::ui_block};
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::{
@@ -12,7 +12,6 @@ use crate::{
     app::AppState,
     component::{Component, FrameType},
     event::AppEvent,
-    loaders::player::PlaylistSong,
     select,
     tabs::log::{LogMessage, LogsState},
 };
@@ -48,6 +47,9 @@ impl AudioPlayer {
             logger,
         })
     }
+    pub fn finish(&mut self) {
+        self.handler.finish();
+    }
     fn on_tick(&mut self, state: &mut PlayerState) {
         if self.indices != state.indices() {
             let indices_opt = state.indices().and_then(|i| self.indices.map(|si| (si, i)));
@@ -67,7 +69,7 @@ impl AudioPlayer {
         }
         if self.handler.is_end_song() {
             if let Some((p_i, s_i)) = self.indices {
-                if state.library.playlists[p_i].songs.get(s_i + 1).is_some() {
+                if state.playlists[p_i].songs.get(s_i + 1).is_some() {
                     state.audio_selected = Some(s_i + 1);
                     if let Err(e) = self.handler.set_song(state.selected_audio().cloned()) {
                         self.logger
@@ -125,7 +127,7 @@ impl Component for AudioPlayer {
     fn on_event(&mut self, event: &AppEvent, _state: &mut Self::State) {
         match *event {
             AppEvent::Quit => {
-                self.handler.finish();
+                self.finish();
             }
             AppEvent::Key(key_event) => {
                 if key_event.kind != KeyEventKind::Press {
