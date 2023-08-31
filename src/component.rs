@@ -1,5 +1,6 @@
 use std::io::Stdout;
 
+use anyhow::Result;
 use ratatui::{
     prelude::{CrosstermBackend, Rect},
     Frame,
@@ -16,4 +17,9 @@ pub trait Component {
     fn is_focus(&self) -> bool {
         false
     }
+}
+
+pub trait FinishableComp: Component {
+    type Res;
+    fn finish(&mut self) -> Result<Self::Res>;
 }
