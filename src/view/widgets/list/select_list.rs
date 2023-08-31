@@ -15,6 +15,7 @@ pub struct SelectList<'a> {
     widths: &'a [Constraint],
     column_spacing: u16,
     highlight_style: Style,
+    index_style: Style,
     highlight_symbol: &'a str,
     header: Option<WRow<'a>>,
     rows: Vec<WRow<'a>>,
@@ -31,6 +32,7 @@ impl<'a> SelectList<'a> {
             widths: &[],
             column_spacing: 1,
             highlight_style: Style::default(),
+            index_style: Style::default(),
             highlight_symbol: "> ",
             header: None,
             rows: rows.into_iter().collect(),
@@ -60,23 +62,17 @@ impl<'a> SelectList<'a> {
         self
     }
 
-    pub fn style(mut self, style: Style) -> Self {
-        self.style = style;
-        self
-    }
-
     pub fn highlight_symbol(mut self, highlight_symbol: &'a str) -> Self {
         self.highlight_symbol = highlight_symbol;
         self
     }
 
-    pub fn highlight_style(mut self, highlight_style: Style) -> Self {
-        self.highlight_style = highlight_style;
+    pub fn index_style(mut self, style: Style) -> Self {
+        self.index_style = style;
         self
     }
-
-    pub fn column_spacing(mut self, spacing: u16) -> Self {
-        self.column_spacing = spacing;
+    pub fn highlight_style(mut self, highlight_style: Style) -> Self {
+        self.highlight_style = highlight_style;
         self
     }
 
@@ -97,7 +93,6 @@ impl<'a> SelectList<'a> {
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(constraints)
-            // .expand_to_fill(false)
             .split(Rect {
                 x: 0,
                 y: 0,
@@ -123,13 +118,13 @@ impl<'a> SelectList<'a> {
             body_height += row.height();
         }
         if let Some(i) = index {
-            if i <= end {
+            if i < end {
                 // If the index is between in the previous range, return
                 return (start, end);
             }
             start = end;
             let mut body_height = 0;
-            for w_row in &self.rows[end..] {
+            for w_row in &self.rows[start..] {
                 if w_row.height() + body_height >= max_height {
                     start = end;
                     if end <= i {
@@ -204,6 +199,8 @@ impl<'a> StatefulWidget for SelectList<'a> {
         let (mut start, end) =
             self.range_rows(state.index(), table_area.bottom() - table_area.top());
 
+        let selecteds = state.selecteds();
+
         for w_row in &self.rows[start..end] {
             let row_area = Rect {
                 height: w_row.height(),
@@ -213,7 +210,6 @@ impl<'a> StatefulWidget for SelectList<'a> {
 
             let is_index = state.index().map_or(false, |s| s == start);
             let table_row_start_col = if has_selection {
-                // println!("select");
                 let symbol = select!(is_index, self.highlight_symbol, &blank_symbol);
                 buf.set_stringn(
                     table_area.left(),
@@ -240,6 +236,9 @@ impl<'a> StatefulWidget for SelectList<'a> {
 
             if is_index {
                 buf.set_style(row_area, self.highlight_style);
+            }
+            if selecteds.contains(&start) {
+                buf.set_style(row_area, self.index_style);
             }
             table_area.y += w_row.height();
             start += 1;

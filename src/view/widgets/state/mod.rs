@@ -22,6 +22,7 @@ impl SelectListState {
         self.selecteds = usizes.into_iter().collect();
         self
     }
+
     pub fn with_index(mut self, index: Option<usize>) -> Self {
         self.index = index;
         self
@@ -30,9 +31,6 @@ impl SelectListState {
         self.index
     }
 
-    // pub fn selecteds(&self) -> Vec<usize> {
-    //     self.selecteds.iter().copied().collect()
-    // }
     pub fn selecteds(&self) -> &HashSet<usize> {
         &self.selecteds
     }
