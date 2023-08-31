@@ -2,9 +2,10 @@ use anyhow::anyhow;
 
 mod app;
 mod component;
+mod data;
 mod dirs;
 mod event;
-mod loaders;
+mod handlers;
 mod tabs;
 mod tui;
 mod utils;
