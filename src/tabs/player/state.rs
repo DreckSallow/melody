@@ -1,63 +1,43 @@
-use std::{cell::RefCell, rc::Rc};
-
-use crate::loaders::player::PlaylistsData;
+use crate::handlers::music::{PlaylistInfo, PlaylistSong};
 
 #[derive(Debug)]
 pub struct PlayerState {
-    pub library: PlaylistsData,
+    pub playlists: Vec<PlaylistInfo>,
     pub playlist_selected: Option<usize>,
     pub audio_selected: Option<usize>,
 }
 
 impl PlayerState {
-    pub fn create(playlist_data: PlaylistsData) -> Self {
+    pub fn create(playlists: Vec<PlaylistInfo>) -> Self {
         Self {
-            library: playlist_data,
+            playlists,
             playlist_selected: None,
             audio_selected: None,
         }
     }
-}
-
-pub struct PlayerStateReactive {
-    state: Rc<RefCell<PlayerState>>,
-    observers: Vec<Box<dyn Fn(&PlayerStateAction, &PlayerState)>>,
-}
-
-impl From<&Rc<RefCell<PlayerState>>> for PlayerStateReactive {
-    fn from(value: &Rc<RefCell<PlayerState>>) -> Self {
-        PlayerStateReactive {
-            state: Rc::clone(value),
-            observers: Vec::new(),
+    pub fn selected_playlist(&self) -> Option<&PlaylistInfo> {
+        match self.playlist_selected {
+            Some(index) => self.playlists.get(index),
+            None => None,
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub enum PlayerStateAction {
-    SetPlaylist,
-    SetAudio,
-}
-
-impl PlayerStateReactive {
-    pub fn dispatch<F>(&mut self, action: PlayerStateAction, cb: F)
-    where
-        F: FnOnce(&mut PlayerState),
-    {
-        {
-            let mut state = self.state.borrow_mut();
-            cb(&mut state);
+    pub fn selected_audio(&self) -> Option<&PlaylistSong> {
+        match self.selected_playlist() {
+            Some(playlist) => match self.audio_selected {
+                Some(i) => playlist.songs.get(i),
+                None => None,
+            },
+            None => None,
         }
-        let ref_state = &self.state.borrow();
-
-        self.observers
-            .iter_mut()
-            .for_each(|f| f(&action, ref_state))
     }
-    pub fn subscribe<F>(&mut self, cb: F)
-    where
-        F: Fn(&PlayerStateAction, &PlayerState) + 'static,
-    {
-        self.observers.push(Box::new(cb))
+    pub fn indices(&self) -> Option<(usize, usize)> {
+        let playlist = self.playlist_selected;
+        let audio = self.audio_selected;
+
+        if playlist.is_some() && audio.is_some() {
+            Some((playlist.unwrap(), audio.unwrap()))
+        } else {
+            None
+        }
     }
 }

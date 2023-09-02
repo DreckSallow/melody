@@ -36,7 +36,7 @@ impl TuiApp {
     fn restore_terminal(&mut self) -> io::Result<()> {
         disable_raw_mode()?;
         execute!(self.terminal.backend_mut(), LeaveAlternateScreen)?;
-        Ok(self.terminal.show_cursor()?)
+        self.terminal.show_cursor()
     }
 
     pub fn run(mut self) -> Result<()> {
@@ -44,14 +44,14 @@ impl TuiApp {
         let mut app = App::build()?;
         loop {
             self.terminal
-                .draw(|frame| app.render(frame, frame.size()))?;
+                .draw(|frame| app.render(frame, frame.size(), &mut None))?;
             if event::poll(Duration::from_millis(250))? {
                 if let Event::Key(key) = event::read()? {
                     if KeyCode::Char('q') == key.code {
-                        app.on_event(&AppEvent::Quit);
+                        app.on_event(&AppEvent::Quit, &mut None);
                         break;
                     }
-                    app.on_event(&AppEvent::Key(key));
+                    app.on_event(&AppEvent::Key(key), &mut None);
                 }
             }
         }

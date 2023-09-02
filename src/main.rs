@@ -2,16 +2,17 @@ use anyhow::anyhow;
 
 mod app;
 mod component;
+mod data;
 mod dirs;
 mod event;
-mod loaders;
+mod handlers;
 mod tabs;
 mod tui;
+mod utils;
 mod view;
-use tui::TuiApp;
 
 fn main() {
-    let res = match TuiApp::build() {
+    let res = match tui::TuiApp::build() {
         Ok(app) => app.run(),
         Err(e) => Err(anyhow!(e)),
     };
