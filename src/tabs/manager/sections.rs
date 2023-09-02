@@ -72,6 +72,9 @@ impl Component for PlaylistsManager {
                     //We can change the focus section
                     // state.focus_i = 2
                 }
+                KeyCode::Char('d') => {
+                    state.delete_playlist();
+                }
 
                 _ => {}
             }

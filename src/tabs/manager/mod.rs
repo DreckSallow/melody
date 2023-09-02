@@ -31,23 +31,35 @@ pub struct MusicManagerState {
 
 impl MusicManagerState {
     pub fn update_select_list(&mut self) {
-        if let Some(play) = self
+        let selecteds: Vec<usize> = match self
             .list_playlists
             .selected()
             .and_then(|i| self.playlists.get(i))
         {
-            let songs_paths: Vec<PathBuf> = play.songs.iter().map(|s| s.path.clone()).collect();
-            let selecteds: Vec<usize> = self
-                .songs
-                .iter()
-                .enumerate()
-                .filter_map(|(i, s)| songs_paths.contains(&s.path).then_some(i))
-                .collect();
-
-            self.list_songs = SelectListState::default()
-                .with_len(self.songs.len())
-                .with_selecteds(selecteds)
-                .with_index(select!(self.songs.is_empty(), None, Some(0)));
+            Some(play) => {
+                let songs_paths: Vec<PathBuf> = play.songs.iter().map(|s| s.path.clone()).collect();
+                self.songs
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, s)| songs_paths.contains(&s.path).then_some(i))
+                    .collect()
+            }
+            None => [].into(),
+        };
+        self.list_songs = SelectListState::default()
+            .with_len(self.songs.len())
+            .with_selecteds(selecteds)
+            .with_index(select!(self.songs.is_empty(), None, Some(0)));
+    }
+    pub fn delete_playlist(&mut self) {
+        if let Some(i) = self.list_playlists.selected() {
+            self.playlists.remove(i);
+            if self.playlists.len() == 0 {
+                self.list_playlists.select(None);
+            } else if i >= self.playlists.len() {
+                self.list_playlists.select(Some(self.playlists.len() - 1));
+            }
+            self.update_select_list()
         }
     }
 
@@ -87,6 +99,7 @@ impl PlaylistManager {
         } else {
             Vec::new()
         };
+        let focus_i = select!(playlists.is_empty(), 0, 1);
         let state = MusicManagerState {
             list_playlists: ListController::default().with_select(select!(
                 playlists.is_empty(),
@@ -100,7 +113,7 @@ impl PlaylistManager {
                 .with_index(select!(songs.is_empty(), None, Some(0))),
             input_state: InputState::default(),
             songs,
-            focus_i: 0,
+            focus_i,
         };
         Ok(Self {
             state,
