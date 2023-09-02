@@ -1,3 +1,5 @@
+pub mod input;
+
 use std::collections::HashSet;
 
 use crate::{select, utils::Condition};

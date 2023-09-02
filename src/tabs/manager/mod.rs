@@ -1,12 +1,8 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
-use ratatui::{
-    prelude::*,
-    style::Color,
-    widgets::{List, ListItem},
-};
+use crossterm::event::{KeyCode, KeyModifiers};
+use ratatui::prelude::*;
 
 use crate::{
     app::AppState,
@@ -17,20 +13,76 @@ use crate::{
     utils::Condition,
     view::{
         controllers::list::ListController,
-        ui::ui_block,
-        widgets::{
-            list::{SelectList, WRow},
-            state::SelectListState,
-        },
+        widgets::state::{input::InputState, SelectListState},
     },
 };
 
-pub struct PlaylistManager {
+use self::sections::{InputPlaylist, PlaylistsManager, SongsManager};
+mod sections;
+
+pub struct MusicManagerState {
     list_songs: SelectListState,
+    input_state: InputState,
     list_playlists: ListController,
     playlists: Vec<PlaylistInfo>,
     songs: Vec<PlaylistSong>,
     focus_i: u8,
+}
+
+impl MusicManagerState {
+    pub fn update_select_list(&mut self) {
+        let selecteds: Vec<usize> = match self
+            .list_playlists
+            .selected()
+            .and_then(|i| self.playlists.get(i))
+        {
+            Some(play) => {
+                let songs_paths: Vec<PathBuf> = play.songs.iter().map(|s| s.path.clone()).collect();
+                self.songs
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, s)| songs_paths.contains(&s.path).then_some(i))
+                    .collect()
+            }
+            None => [].into(),
+        };
+        self.list_songs = SelectListState::default()
+            .with_len(self.songs.len())
+            .with_selecteds(selecteds)
+            .with_index(select!(self.songs.is_empty(), None, Some(0)));
+    }
+    pub fn delete_playlist(&mut self) {
+        if let Some(i) = self.list_playlists.selected() {
+            self.playlists.remove(i);
+            if self.playlists.len() == 0 {
+                self.list_playlists.select(None);
+            } else if i >= self.playlists.len() {
+                self.list_playlists.select(Some(self.playlists.len() - 1));
+            }
+            self.update_select_list()
+        }
+    }
+
+    pub fn update_playlist(&mut self) {
+        if let Some(i) = self.list_playlists.selected() {
+            if let Some(playlist) = self.playlists.get_mut(i) {
+                playlist.songs = [].into();
+                let selecteds = self.list_songs.selecteds();
+                for (i, song) in self.songs.iter().enumerate() {
+                    if selecteds.contains(&i) {
+                        playlist.songs.push(song.clone());
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub struct PlaylistManager {
+    state: MusicManagerState,
+    input_playlists: InputPlaylist,
+    playlists: PlaylistsManager,
+    songs: SongsManager,
 }
 
 impl PlaylistManager {
@@ -47,7 +99,8 @@ impl PlaylistManager {
         } else {
             Vec::new()
         };
-        Ok(Self {
+        let focus_i = select!(playlists.is_empty(), 0, 1);
+        let state = MusicManagerState {
             list_playlists: ListController::default().with_select(select!(
                 playlists.is_empty(),
                 None,
@@ -58,46 +111,21 @@ impl PlaylistManager {
                 .with_len(songs.len())
                 .with_selecteds(selecteds)
                 .with_index(select!(songs.is_empty(), None, Some(0))),
+            input_state: InputState::default(),
             songs,
-            focus_i: 0,
+            focus_i,
+        };
+        Ok(Self {
+            state,
+            input_playlists: InputPlaylist,
+            playlists: PlaylistsManager,
+            songs: SongsManager,
         })
     }
-    fn update_select_list(&mut self) {
-        if let Some(play) = self
-            .list_playlists
-            .selected()
-            .and_then(|i| self.playlists.get(i))
-        {
-            let songs_paths: Vec<PathBuf> = play.songs.iter().map(|s| s.path.clone()).collect();
-            let selecteds: Vec<usize> = self
-                .songs
-                .iter()
-                .enumerate()
-                .filter_map(|(i, s)| songs_paths.contains(&s.path).then_some(i))
-                .collect();
 
-            self.list_songs = SelectListState::default()
-                .with_len(self.songs.len())
-                .with_selecteds(selecteds)
-                .with_index(select!(self.songs.is_empty(), None, Some(0)));
-        }
-    }
-    fn update_playlist(&mut self) {
-        if let Some(i) = self.list_playlists.selected() {
-            if let Some(playlist) = self.playlists.get_mut(i) {
-                playlist.songs = [].into();
-                let selecteds = self.list_songs.selecteds();
-                for (i, song) in self.songs.iter().enumerate() {
-                    if selecteds.contains(&i) {
-                        playlist.songs.push(song.clone());
-                    }
-                }
-            }
-        }
-    }
     fn save_data(&mut self) -> Result<()> {
-        self.update_playlist();
-        MusicHandler::save_playlists(self.playlists.clone())
+        self.state.update_playlist();
+        MusicHandler::save_playlists(&self.state.playlists)
     }
 }
 
@@ -114,88 +142,38 @@ impl Component for PlaylistManager {
             .constraints([Constraint::Percentage(40), Constraint::Percentage(50)])
             .split(area);
 
-        let playlists: Vec<ListItem> = self
-            .playlists
-            .iter()
-            .map(|p| ListItem::new(p.name.as_str()))
-            .collect();
-        let playlist_list = List::new(playlists)
-            .block(ui_block(
-                "Playlists",
-                select!(self.focus_i == 0, Color::Cyan, Color::White),
-            ))
-            .highlight_symbol("> ")
-            .highlight_style(Style::default().bg(Color::Cyan));
-        frame.render_stateful_widget(playlist_list, chunks[0], self.list_playlists.state());
+        let play_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Max(3), Constraint::Percentage(80)])
+            .split(chunks[0]);
 
-        let songs_rows = self.songs.iter().map(|s| {
-            let cells = [s.file_name.clone().unwrap_or("----".into())];
-            WRow::new(cells)
-        });
+        self.input_playlists
+            .render(frame, play_chunks[0], &mut self.state);
 
-        let songs_table = SelectList::new(songs_rows)
-            .header(WRow::new(["Name"]).with_height(1))
-            .widths(&[Constraint::Percentage(100)])
-            .index_style(Style::default().bg(Color::LightGreen))
-            .highlight_style(Style::default().bg(Color::Cyan))
-            .block(ui_block(
-                "Songs",
-                select!(self.focus_i == 1, Color::Cyan, Color::White),
-            ))
-            .highlight_symbol("> ");
-        frame.render_stateful_widget(songs_table, chunks[1], &mut self.list_songs);
+        self.playlists
+            .render(frame, play_chunks[1], &mut self.state);
+
+        self.songs.render(frame, chunks[1], &mut self.state);
     }
     fn on_event(&mut self, event: &AppEvent, _state: &mut Self::State) {
-        match event {
-            AppEvent::Key(key_event) => {
-                if key_event.kind != KeyEventKind::Press {
-                    return;
-                }
-
-                if let KeyModifiers::CONTROL = key_event.modifiers {
-                    match key_event.code {
-                        KeyCode::Char('1') => {
-                            self.focus_i = 0;
-                        }
-                        KeyCode::Char('2') => {
-                            self.focus_i = 1;
-                        }
+        if let AppEvent::Key(key_event) = event {
+            if let KeyModifiers::CONTROL = key_event.modifiers {
+                if let KeyCode::Char(n) = key_event.code {
+                    match n {
+                        '1' => self.state.focus_i = 0,
+                        '2' => self.state.focus_i = 1,
+                        '3' => self.state.focus_i = 2,
                         _ => {}
                     }
                 }
-                match key_event.code {
-                    KeyCode::Down => {
-                        match self.focus_i {
-                            0 => {
-                                self.update_playlist();
-                                self.list_playlists.next(self.playlists.len());
-                                self.update_select_list()
-                            }
-                            1 => self.list_songs.next(),
-                            _ => {}
-                        };
-                    }
-                    KeyCode::Up => {
-                        match self.focus_i {
-                            0 => {
-                                self.update_playlist();
-                                self.list_playlists.previous(self.playlists.len());
-                                self.update_select_list()
-                            }
-                            1 => self.list_songs.previous(),
-                            _ => {}
-                        };
-                    }
-                    KeyCode::Enter => {
-                        if self.focus_i == 1 {
-                            self.list_songs.toggle_select()
-                        }
-                    }
-
-                    _ => {}
-                }
             }
-            AppEvent::Quit => {}
+        }
+
+        match self.state.focus_i {
+            0 => self.input_playlists.on_event(event, &mut self.state),
+            1 => self.playlists.on_event(event, &mut self.state),
+            2 => self.songs.on_event(event, &mut self.state),
+            _ => {}
         }
     }
 }
