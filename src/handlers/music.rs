@@ -47,7 +47,7 @@ impl MusicHandler {
         }
         Ok(playlists)
     }
-    pub fn save_playlists(playlists: Vec<PlaylistInfo>) -> Result<()> {
+    pub fn save_playlists(playlists: &[PlaylistInfo]) -> Result<()> {
         let mut data_vec = Vec::new();
         for playlist in playlists {
             let songs = playlist
@@ -56,11 +56,10 @@ impl MusicHandler {
                 .filter_map(|s| s.path.to_str().map(|s| s.to_string()))
                 .collect();
             data_vec.push(RawPlaylist {
-                name: playlist.name,
+                name: playlist.name.clone(),
                 songs,
             });
         }
-        // println!("SAVING DATA");
         PlaylistStore::save(RawPlaylistToml {
             playlists: data_vec,
         })

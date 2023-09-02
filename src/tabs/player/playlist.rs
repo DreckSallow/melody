@@ -33,7 +33,6 @@ impl Playlist {
         if self.indices != state.indices() {
             self.table_controller.select(state.audio_selected);
             self.indices = state.indices()
-            // self.playlist_index = state.playlist_selected;
         }
     }
 }
@@ -99,8 +98,8 @@ impl Component for Playlist {
                     .map(|p| p.songs.len())
                     .unwrap_or(0);
                 match key_event.code {
-                    KeyCode::Down => self.table_controller.next(songs * 13),
-                    KeyCode::Up => self.table_controller.previous(songs * 13),
+                    KeyCode::Down => self.table_controller.next(songs),
+                    KeyCode::Up => self.table_controller.previous(songs),
                     KeyCode::Enter => {
                         state.audio_selected = self.table_controller.selected();
                     }
