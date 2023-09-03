@@ -210,7 +210,8 @@ impl Component for AudioPlayer {
                 };
                 match key_event.code {
                     KeyCode::Char(' ') => state.audio_handler.toggle_action(),
-
+                    KeyCode::Down => state.audio_handler.down_volumne(),
+                    KeyCode::Up => state.audio_handler.up_volumne(),
                     _ => {}
                 }
             }

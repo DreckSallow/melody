@@ -147,6 +147,18 @@ impl AudioHandler {
         self.sink.pause();
         self.sink.stop();
     }
+    pub fn up_volumne(&self) {
+        let v = self.sink.volume();
+        if v + 0.1 <= 1.0 {
+            self.sink.set_volume(v + 0.1);
+        }
+    }
+    pub fn down_volumne(&self) {
+        let v = self.sink.volume();
+        if v - 0.1 >= -0.1 {
+            self.sink.set_volume(v - 0.1);
+        }
+    }
     pub fn percentage_info(&mut self, other: Duration) -> (u64, u8) {
         let info = (self.progress.seconds(), self.progress.percentage(other));
         if info.1 >= 100 {
