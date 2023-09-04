@@ -8,7 +8,7 @@ on:
         required: true
 
 jobs:
-  relase-windows:
+  release-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
@@ -29,12 +29,18 @@ jobs:
           retention-days: 1
   
   release-linux:
-    runs-om: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
       - name: Update rust
         run: rustup update
+      
+      - name: Setup dependencies
+      - run: |
+        apt-get update
+        apt-get install pkg-config
+        apt-get libasound2-dev
       
       - name: Compress
         run: |
@@ -48,7 +54,7 @@ jobs:
           retention-days: 1
 
   release-macos:
-    runs-om: macos-11
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v3
 
@@ -65,3 +71,21 @@ jobs:
           name: melody-macos
           path: ./melody-macos.zip
           retention-days: 1
+  publish:
+    needs: [release-windows,release-linux,release-macos]
+    runs-on: ubuntu-latest
+    permissions: write-all
+    env:
+      GH_TOKEN : ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+
+      - name: Show downloads
+        run: ls 
+
+      - name: Publish binaries
+        # Delete --draft
+        run: |
+            gh release create ${{inputs.tag_name}} --title "${{inputs.tag_name}}" --draft  flow-macos/* flow-linux/* flow-windows/*
