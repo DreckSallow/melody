@@ -38,8 +38,7 @@ impl TuiApp {
         execute!(self.terminal.backend_mut(), LeaveAlternateScreen)?;
         self.terminal.show_cursor()
     }
-
-    pub fn run(mut self) -> Result<()> {
+    fn internal_run(&mut self) -> Result<()> {
         self.setup_terminal()?;
         let mut app = App::build()?;
         loop {
@@ -59,7 +58,14 @@ impl TuiApp {
                 }
             }
         }
-        self.restore_terminal()?;
         Ok(())
+    }
+
+    //Wrap the internal_run to restore the terminal if
+    //an error ocurred
+    pub fn run(mut self) -> Result<()> {
+        let run_res = self.internal_run();
+        self.restore_terminal()?;
+        run_res
     }
 }
