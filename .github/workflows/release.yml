@@ -37,10 +37,10 @@ jobs:
         run: rustup update
       
       - name: Setup dependencies
-      - run: |
-        apt-get update
-        apt-get install pkg-config
-        apt-get libasound2-dev
+        run: |
+          apt-get update
+          apt-get install pkg-config
+          apt-get libasound2-dev
       
       - name: Compress
         run: |
