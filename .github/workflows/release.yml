@@ -36,6 +36,12 @@ jobs:
       - name: Update rust
         run: rustup update
       
+      - name: Setup dependencies
+      - run: |
+        apt-get update
+        apt-get install pkg-config
+        apt-get libasound2-dev
+      
       - name: Compress
         run: |
           cargo build --release
