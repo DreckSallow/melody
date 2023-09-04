@@ -47,7 +47,7 @@ impl App {
         let player: TabComponent<'static> = (" Player ", Box::new(PlayerTab::build(&state)?));
         let log: TabComponent<'static> = (" Log ", Box::new(LogTab::build()));
 
-        let config = ConfigData::load()?;
+        let config = ConfigData::load().or(ConfigData::try_default())?;
 
         let manager: TabComponent<'static> = (
             " Manager ",

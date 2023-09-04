@@ -1,6 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::{anyhow, Result};
+use directories::UserDirs;
 use serde::Deserialize;
 
 use crate::dirs::config_dir;
@@ -11,6 +12,12 @@ pub struct ConfigData {
 }
 
 impl ConfigData {
+    pub fn try_default() -> Result<Self> {
+        match UserDirs::new().and_then(|u| u.audio_dir().map(|p| p.to_owned())) {
+            Some(p) => Ok(Self { music_path: p }),
+            None => Err(anyhow!("Failed to find the music default path")),
+        }
+    }
     pub fn load() -> Result<Self> {
         match config_dir() {
             Some(mut p) => {
