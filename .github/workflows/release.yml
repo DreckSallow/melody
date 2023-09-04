@@ -65,21 +65,21 @@ jobs:
           name: melody-macos
           path: ./melody-macos.zip
           retention-days: 1
-publish:
-  needs: [release-windows,release-linux,release-macos]
-  runs-on: ubuntu-latest
-  permissions: write-all
-  env:
-    GH_TOKEN : ${{ secrets.GITHUB_TOKEN }}
-  steps:
-    - uses: actions/checkout@v3
+  publish:
+    needs: [release-windows,release-linux,release-macos]
+    runs-on: ubuntu-latest
+    permissions: write-all
+    env:
+      GH_TOKEN : ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
 
-    - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v3
 
-    - name: Show downloads
-      run: ls 
+      - name: Show downloads
+        run: ls 
 
-    - name: Publish binaries
-      # Delete --draft
-      run: |
-          gh release create ${{inputs.tag_name}} --title "${{inputs.tag_name}}" --draft  flow-macos/* flow-linux/* flow-windows/*
+      - name: Publish binaries
+        # Delete --draft
+        run: |
+            gh release create ${{inputs.tag_name}} --title "${{inputs.tag_name}}" --draft  flow-macos/* flow-linux/* flow-windows/*
