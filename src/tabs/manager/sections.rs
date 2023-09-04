@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyEventKind};
+use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{
     prelude::*,
     style::Style,
@@ -114,6 +114,11 @@ impl Component for InputPlaylist {
                     state.input_state.back_index();
                 }
                 KeyCode::Char(l) => {
+                    if let KeyModifiers::CONTROL = key_event.modifiers {
+                        if l == '1' {
+                            return;
+                        }
+                    }
                     state.input_state.insert(l.to_string().as_str());
                     state.input_state.next_index();
                 }
@@ -166,7 +171,7 @@ impl Component for SongsManager {
             .widths(&[Constraint::Percentage(100)])
             .index_style(
                 Style::default()
-                    .fg(Color::LightRed)
+                    .fg(Color::Yellow)
                     .add_modifier(Modifier::ITALIC),
             )
             .highlight_style(Style::default().bg(Color::Blue))
