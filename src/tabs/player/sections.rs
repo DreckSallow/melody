@@ -23,9 +23,11 @@ impl Component for PlayerLibrary {
         area: ratatui::prelude::Rect,
         state: &mut Self::State,
     ) {
+        let is_focused = state.focus_i == 0;
+
         let section = ui_block(
-            "Playlists",
-            select!(state.focus_i == 0, Color::Cyan, Color::White),
+            format!(" Playlists ({}) ", state.playlists.len()),
+            select!(is_focused, Color::Cyan, Color::White),
         );
         let items: Vec<ListItem> = state
             .playlists
@@ -35,7 +37,11 @@ impl Component for PlayerLibrary {
 
         let list_block = List::new(items)
             .block(section)
-            .highlight_style(Style::default().bg(Color::Cyan))
+            .highlight_style(Style::default().bg(select!(
+                is_focused,
+                Color::Blue,
+                Color::LightBlue
+            )))
             .highlight_symbol("🚀 ");
 
         frame.render_stateful_widget(list_block, area, state.list_playlists.state())
@@ -97,14 +103,18 @@ impl Component for Playlist {
                 .map(|s| vec![s.file_name.clone().unwrap_or("----".into())])
                 .collect();
 
-            (playlist.name.clone(), songs_info)
+            (
+                format!(" {} ({})", playlist.name, playlist.songs.len()),
+                songs_info,
+            )
         } else {
-            ("List".into(), Vec::new())
+            (" List ".into(), Vec::new())
         };
+        let is_focused = state.focus_i == 1;
 
         let playlist_block = ui_block(
             data.0.as_str(),
-            select!(state.focus_i == 1, Color::Cyan, Color::White),
+            select!(is_focused, Color::Cyan, Color::White),
         );
         let headers_cells = ["Name"].iter().map(|header| Cell::from(*header));
         let header = Row::new(headers_cells)
@@ -118,7 +128,11 @@ impl Component for Playlist {
         let table_block = Table::new(items)
             .header(header)
             .block(playlist_block)
-            .highlight_style(Style::default().bg(ratatui::style::Color::Cyan))
+            .highlight_style(Style::default().bg(select!(
+                is_focused,
+                Color::Blue,
+                Color::LightBlue
+            )))
             .widths(&[
                 Constraint::Percentage(70),
                 Constraint::Percentage(15),
@@ -170,7 +184,7 @@ impl Component for AudioPlayer {
                 "Not Song".to_string()
             ))
             .alignment(Alignment::Center),
-            select!(state.focus_i == 2, Color::Cyan, Color::White),
+            select!(state.focus_i == 2, Color::LightBlue, Color::White),
         );
         frame.render_widget(block, area);
 

@@ -48,7 +48,7 @@ impl Component for LogTab {
         area: Rect,
         state: &mut Self::State,
     ) {
-        let block = Block::default().borders(Borders::ALL).title("Logs");
+        let block = Block::default().borders(Borders::ALL).title(" Logs ");
 
         let lines: Vec<Line> = state
             .log

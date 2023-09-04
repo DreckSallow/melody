@@ -10,6 +10,8 @@ use super::state::input::InputState;
 pub struct Input<'a> {
     block: Option<Block<'a>>,
     style: Style,
+    show_cursor: bool,
+    style_cursor: Style,
 }
 
 impl<'a> Input<'a> {
@@ -19,6 +21,14 @@ impl<'a> Input<'a> {
     }
     pub fn block(mut self, block: Block<'a>) -> Self {
         self.block = Some(block);
+        self
+    }
+    pub fn cursor_visibility(mut self, b: bool) -> Self {
+        self.show_cursor = b;
+        self
+    }
+    pub fn cursor_style(mut self, s: Style) -> Self {
+        self.style_cursor = s;
         self
     }
 }
@@ -50,7 +60,9 @@ impl<'a> StatefulWidget for Input<'a> {
             input_area.width as usize,
             Style::default(),
         );
-        let cursor = Rect::new(input_area.x + state.index() as u16, input_area.y, 1, 1);
-        buf.set_style(cursor, Style::default().bg(ratatui::style::Color::Green));
+        if self.show_cursor {
+            let cursor = Rect::new(input_area.x + state.index() as u16, input_area.y, 1, 1);
+            buf.set_style(cursor, self.style_cursor);
+        }
     }
 }

@@ -40,11 +40,11 @@ impl Component for PlaylistsManager {
             .collect();
         let playlist_list = List::new(playlists)
             .block(ui_block(
-                "Playlists",
+                format!(" Playlists ({})", state.playlists.len()),
                 select!(state.focus_i == 1, Color::Cyan, Color::White),
             ))
             .highlight_symbol("> ")
-            .highlight_style(Style::default().bg(Color::Cyan));
+            .highlight_style(Style::default().bg(Color::Blue));
         frame.render_stateful_widget(playlist_list, area, state.list_playlists.state());
     }
     fn on_event(&mut self, event: &AppEvent, state: &mut Self::State) {
@@ -66,7 +66,6 @@ impl Component for PlaylistsManager {
                 KeyCode::Enter => {
                     // FIXME: Change the selected index of ListController
                     // because, the select index is changed when The controller
-                    // Is down or UP
                     // state.update_select_list();
 
                     //We can change the focus section
@@ -92,10 +91,14 @@ impl Component for InputPlaylist {
         area: Rect,
         state: &mut Self::State,
     ) {
-        let input = Input::default().block(ui_block(
-            "Create",
-            select!(state.focus_i == 0, Color::Cyan, Color::White),
-        ));
+        let input = Input::default()
+            .block(ui_block(
+                " Create ",
+                select!(state.focus_i == 0, Color::Cyan, Color::White),
+            ))
+            .cursor_visibility(state.focus_i == 0)
+            .cursor_style(Style::default().bg(Color::Blue));
+
         frame.render_stateful_widget(input, area, &mut state.input_state)
     }
     fn on_event(&mut self, event: &AppEvent, state: &mut Self::State) {
@@ -161,10 +164,14 @@ impl Component for SongsManager {
         let songs_table = SelectList::new(songs_rows)
             .header(WRow::new(["Name"]).with_height(1))
             .widths(&[Constraint::Percentage(100)])
-            .index_style(Style::default().bg(Color::LightGreen))
-            .highlight_style(Style::default().bg(Color::Cyan))
+            .index_style(
+                Style::default()
+                    .fg(Color::LightRed)
+                    .add_modifier(Modifier::ITALIC),
+            )
+            .highlight_style(Style::default().bg(Color::Blue))
             .block(ui_block(
-                "Songs",
+                format!(" Songs ({})", state.songs.len()),
                 select!(state.focus_i == 2, Color::Cyan, Color::White),
             ))
             .highlight_symbol("> ");

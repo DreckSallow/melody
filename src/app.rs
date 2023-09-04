@@ -44,13 +44,13 @@ pub struct App {
 impl App {
     pub fn build() -> Result<Self> {
         let state = AppState::default();
-        let player: TabComponent<'static> = ("player", Box::new(PlayerTab::build(&state)?));
-        let log: TabComponent<'static> = ("Log", Box::new(LogTab::build()));
+        let player: TabComponent<'static> = (" Player ", Box::new(PlayerTab::build(&state)?));
+        let log: TabComponent<'static> = (" Log ", Box::new(LogTab::build()));
 
         let config = ConfigData::load()?;
 
         let manager: TabComponent<'static> = (
-            "Manager",
+            " Manager ",
             Box::new(PlaylistManager::build(&config.music_path)?),
         );
         let tabs: TabsType<'static> = vec![player, manager, log];
@@ -78,9 +78,9 @@ impl Component for App {
 
         let tab_titles = self.tabs.iter().map(|(tab, _)| Line::from(*tab)).collect();
         let tabs = Tabs::new(tab_titles)
-            .block(Block::default().borders(Borders::ALL).title("tabs"))
+            .block(Block::default().borders(Borders::ALL))
             .select(self.tab_index)
-            .highlight_style(Style::default().bg(Color::Red));
+            .highlight_style(Style::default().bg(Color::Blue));
 
         frame.render_widget(tabs, chunks[0]);
 
@@ -109,15 +109,16 @@ impl Component for App {
                         // Create new Tab
                         match self.tab_index {
                             0 => PlayerTab::build(&self.state).map(|p| {
-                                let tb: TabComponent<'static> = ("Player", Box::new(p));
+                                let tb: TabComponent<'static> = (" Player ", Box::new(p));
                                 tb
                             }),
                             1 => PlaylistManager::build(&self.music_path).map(|p| {
-                                let tb: TabComponent<'static> = ("Manager", Box::new(p));
+                                let tb: TabComponent<'static> = (" Manager ", Box::new(p));
                                 tb
                             }),
                             2 => {
-                                let tab: TabComponent<'static> = ("Log", Box::new(LogTab::build()));
+                                let tab: TabComponent<'static> =
+                                    (" Log ", Box::new(LogTab::build()));
                                 Ok(tab)
                             }
                             _ => {
