@@ -24,8 +24,8 @@ pub struct PlayerTab {
 }
 
 impl PlayerTab {
-    pub fn build(_app_state: &AppState) -> Result<Self> {
-        let state = PlayerState::new(MusicHandler::load_playlists()?);
+    pub fn build(app_state: &AppState) -> Result<Self> {
+        let state = PlayerState::create(MusicHandler::load_playlists()?, &app_state.log)?;
 
         Ok(Self {
             state,

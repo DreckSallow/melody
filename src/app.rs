@@ -51,7 +51,7 @@ impl App {
 
         let manager: TabComponent<'static> = (
             " Manager ",
-            Box::new(PlaylistManager::build(&config.music_path)?),
+            Box::new(PlaylistManager::build(&state, &config.music_path)?),
         );
         let tabs: TabsType<'static> = vec![player, manager, log];
         Ok(App {
@@ -112,7 +112,7 @@ impl Component for App {
                                 let tb: TabComponent<'static> = (" Player ", Box::new(p));
                                 tb
                             }),
-                            1 => PlaylistManager::build(&self.music_path).map(|p| {
+                            1 => PlaylistManager::build(&self.state, &self.music_path).map(|p| {
                                 let tb: TabComponent<'static> = (" Manager ", Box::new(p));
                                 tb
                             }),

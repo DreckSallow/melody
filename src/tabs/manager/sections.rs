@@ -43,7 +43,7 @@ impl Component for PlaylistsManager {
                 format!(" Playlists ({})", state.playlists.len()),
                 select!(state.focus_i == 1, Color::Cyan, Color::White),
             ))
-            .highlight_symbol("> ")
+            .highlight_symbol("🚀 ")
             .highlight_style(Style::default().bg(Color::Blue));
         frame.render_stateful_widget(playlist_list, area, state.list_playlists.state());
     }
@@ -174,7 +174,7 @@ impl Component for SongsManager {
                 format!(" Songs ({})", state.songs.len()),
                 select!(state.focus_i == 2, Color::Cyan, Color::White),
             ))
-            .highlight_symbol("> ");
+            .highlight_symbol("🎵 ");
         frame.render_stateful_widget(songs_table, area, &mut state.list_songs);
     }
     fn on_event(&mut self, event: &crate::event::AppEvent, state: &mut Self::State) {

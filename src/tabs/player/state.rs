@@ -4,6 +4,7 @@ use rodio::{Decoder, OutputStream, Sink};
 use crate::{
     handlers::music::{PlaylistInfo, PlaylistSong},
     select,
+    tabs::log::LogMessage,
     utils::{self, Condition},
     view::controllers::{list::ListController, table::TableController},
 };
@@ -14,10 +15,14 @@ pub struct PlayerState {
     pub(crate) table_songs: TableController,
     pub(crate) audio_handler: AudioHandler,
     pub focus_i: u8,
+    logger: Rc<RefCell<Vec<LogMessage>>>,
 }
 
 impl PlayerState {
-    pub fn new(playlists: Vec<PlaylistInfo>) -> Self {
+    pub fn create(
+        playlists: Vec<PlaylistInfo>,
+        logger: &Rc<RefCell<Vec<LogMessage>>>,
+    ) -> Result<Self> {
         let (list_i, table_i) = match playlists.get(0) {
             Some(play) => {
                 let table_i = select!(play.songs.is_empty(), None, Some(0));
@@ -25,17 +30,21 @@ impl PlayerState {
             }
             None => (None, None),
         };
-        let mut audio_handler = AudioHandler::try_default().expect("AUDIO HANDLER BREAKED");
-        audio_handler
-            .set_song(playlists.get(0).and_then(|p| p.songs.get(0).cloned()))
-            .expect("ERR IN SET SONG");
-        Self {
+        let mut audio_handler = AudioHandler::try_default()?;
+        if let Err(e) =
+            audio_handler.set_song(playlists.get(0).and_then(|p| p.songs.get(0).cloned()))
+        {
+            logger.borrow_mut().push(LogMessage::Error(e.to_string()))
+        }
+
+        Ok(Self {
             list_playlists: ListController::default().with_select(list_i),
             table_songs: TableController::default().with_select(table_i),
             audio_handler,
             playlists,
             focus_i: 0,
-        }
+            logger: Rc::clone(logger),
+        })
     }
     pub fn update_songs(&mut self) {
         if let Some(play) = self.current_playlist() {
@@ -55,16 +64,20 @@ impl PlayerState {
     pub fn append_song(&mut self) {
         if let Some(play) = self.current_playlist() {
             let song_opt = self.table_songs.selected().and_then(|i| play.songs.get(i));
-            self.audio_handler
-                .set_song(song_opt.cloned())
-                .expect("ERROR SETING A SONG");
+            if let Err(e) = self.audio_handler.set_song(song_opt.cloned()) {
+                self.logger
+                    .borrow_mut()
+                    .push(LogMessage::Error(e.to_string()))
+            }
         }
     }
 }
 
 use std::{
+    cell::RefCell,
     fs::File,
     io::BufReader,
+    rc::Rc,
     time::{Duration, Instant},
 };
 
