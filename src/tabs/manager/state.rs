@@ -52,8 +52,8 @@ impl MusicManagerState {
                 self.list_playlists.select(Some(self.playlists.len() - 1));
             }
             self.update_select_list();
-            self.logger.borrow_mut().push(LogMessage::Warn(format!(
-                "Playlist Deleted: {}, songs length: {}",
+            self.logger.borrow_mut().push(LogMessage::warn(format!(
+                "The playlist '{}', with '{}' songs, was removed.",
                 play.name,
                 play.songs.len()
             )))
@@ -71,6 +71,33 @@ impl MusicManagerState {
                     }
                 }
             }
+        }
+    }
+    pub fn create_playlist(&mut self) {
+        let input = self.input_state.text().to_string();
+        let mut contains = false;
+        // Store the playlists
+        for play in &self.playlists {
+            if play.name == input {
+                contains = true;
+                break;
+            }
+        }
+        if !contains {
+            self.playlists.push(PlaylistInfo {
+                name: input.clone(),
+                songs: Vec::new(),
+            });
+            self.input_state = InputState::default();
+            self.logger.borrow_mut().push(LogMessage::info(format!(
+                "The playlist '{}' was created.",
+                input
+            )))
+        } else {
+            self.logger.borrow_mut().push(LogMessage::warn(format!(
+                "The playlist '{}' already exists!.",
+                input
+            )));
         }
     }
 }

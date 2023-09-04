@@ -34,7 +34,7 @@ impl PlayerState {
         if let Err(e) =
             audio_handler.set_song(playlists.get(0).and_then(|p| p.songs.get(0).cloned()))
         {
-            logger.borrow_mut().push(LogMessage::Error(e.to_string()))
+            logger.borrow_mut().push(LogMessage::error(e.to_string()))
         }
 
         Ok(Self {
@@ -67,7 +67,7 @@ impl PlayerState {
             if let Err(e) = self.audio_handler.set_song(song_opt.cloned()) {
                 self.logger
                     .borrow_mut()
-                    .push(LogMessage::Error(e.to_string()))
+                    .push(LogMessage::error(e.to_string()))
             }
         }
     }

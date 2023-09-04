@@ -134,7 +134,7 @@ impl Component for App {
                         .state
                         .log
                         .borrow_mut()
-                        .push(LogMessage::Error(e.to_string())),
+                        .push(LogMessage::error(e.to_string())),
                 }
             }
         }

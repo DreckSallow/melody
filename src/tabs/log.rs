@@ -7,6 +7,7 @@ use ratatui::{
     text::Line,
     widgets::{Block, Borders, Paragraph},
 };
+use time::OffsetDateTime;
 
 use crate::{
     app::AppState,
@@ -15,20 +16,53 @@ use crate::{
 
 pub type LogsState = Rc<RefCell<Vec<LogMessage>>>;
 
-pub enum LogMessage {
-    Info(String),
-    Warn(String),
-    Error(String),
+pub enum LogType {
+    Info,
+    Warn,
+    Error,
+}
+
+pub struct LogMessage {
+    message: String,
+    log_type: LogType,
 }
 
 impl LogMessage {
+    fn get_time() -> String {
+        let now = OffsetDateTime::now_local().unwrap_or(OffsetDateTime::now_utc());
+        let (h, m, s) = now.to_hms();
+        format!("[{} {h}:{m}:{s}]", now.date())
+    }
+    fn format_text(m: String) -> String {
+        format!("{} {m}", Self::get_time(),)
+    }
+    pub fn info<T: Into<String>>(message: T) -> Self {
+        LogMessage {
+            message: Self::format_text(message.into()),
+            log_type: LogType::Info,
+        }
+    }
+    pub fn warn<T: Into<String>>(message: T) -> Self {
+        LogMessage {
+            message: Self::format_text(message.into()),
+            log_type: LogType::Warn,
+        }
+    }
+    pub fn error<T: Into<String>>(message: T) -> Self {
+        LogMessage {
+            message: Self::format_text(message.into()),
+            log_type: LogType::Error,
+        }
+    }
     pub fn text(&self) -> String {
-        let s = match self {
-            LogMessage::Info(s) => s,
-            LogMessage::Warn(s) => s,
-            LogMessage::Error(s) => s,
-        };
-        s.clone()
+        self.message.clone()
+    }
+    pub fn color(&self) -> Color {
+        match self.log_type {
+            LogType::Info => Color::White,
+            LogType::Warn => Color::Yellow,
+            LogType::Error => Color::Red,
+        }
     }
 }
 
@@ -48,20 +82,18 @@ impl Component for LogTab {
         area: Rect,
         state: &mut Self::State,
     ) {
-        let block = Block::default().borders(Borders::ALL).title(" Logs ");
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(" Logs ")
+            .border_style(Style::default().fg(Color::Cyan));
 
         let lines: Vec<Line> = state
             .log
             .borrow()
             .iter()
             .map(|log| {
-                let styled = match log {
-                    LogMessage::Info(_) => Color::Green,
-                    LogMessage::Warn(_) => Color::Yellow,
-                    LogMessage::Error(_) => Color::Red,
-                };
-                let mut line = Line::from(log.text().clone());
-                line.patch_style(Style::default().fg(styled));
+                let mut line = Line::from(log.text());
+                line.patch_style(Style::default().fg(log.color()));
                 line
             })
             .collect();

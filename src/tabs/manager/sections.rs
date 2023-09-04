@@ -8,7 +8,6 @@ use ratatui::{
 use crate::{
     component::Component,
     event::AppEvent,
-    handlers::music::PlaylistInfo,
     select,
     utils::Condition,
     view::{
@@ -16,7 +15,6 @@ use crate::{
         widgets::{
             input::Input,
             list::{SelectList, WRow},
-            state::input::InputState,
         },
     },
 };
@@ -127,22 +125,7 @@ impl Component for InputPlaylist {
                     state.input_state.back_index();
                 }
                 KeyCode::Enter => {
-                    let input = state.input_state.text().to_string();
-                    let mut contains = false;
-                    // Store the playlists
-                    for play in &state.playlists {
-                        if play.name == input {
-                            contains = true;
-                            break;
-                        }
-                    }
-                    if !contains {
-                        state.playlists.push(PlaylistInfo {
-                            name: state.input_state.text().into(),
-                            songs: Vec::new(),
-                        });
-                        state.input_state = InputState::default();
-                    }
+                    state.create_playlist();
                 }
 
                 _ => {}
