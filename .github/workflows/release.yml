@@ -40,7 +40,7 @@ jobs:
         run: |
           apt-get update
           apt-get install pkg-config
-          apt-get libasound2-dev
+          apt-get install libasound2-dev
       
       - name: Compress
         run: |
