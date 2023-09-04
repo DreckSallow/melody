@@ -84,11 +84,15 @@ impl MusicManagerState {
             }
         }
         if !contains {
+            if self.playlists.is_empty() {
+                self.list_playlists.select(Some(0));
+            }
             self.playlists.push(PlaylistInfo {
                 name: input.clone(),
                 songs: Vec::new(),
             });
             self.input_state = InputState::default();
+
             self.logger.borrow_mut().push(LogMessage::info(format!(
                 "The playlist '{}' was created.",
                 input
