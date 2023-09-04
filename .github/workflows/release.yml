@@ -89,4 +89,4 @@ jobs:
       - name: Publish binaries
         # Delete --draft
         run: |
-            gh release create ${{inputs.tag_name}} --title "${{inputs.tag_name}}" --draft  flow-macos/* flow-linux/* flow-windows/*
+            gh release create ${{inputs.tag_name}} --title "${{inputs.tag_name}}" --draft  melody-macos/* melody-linux/* melody-windows/*
