@@ -184,7 +184,7 @@ impl Component for AudioPlayer {
                 "Not Song".to_string()
             ))
             .alignment(Alignment::Center),
-            select!(state.focus_i == 2, Color::LightBlue, Color::White),
+            select!(state.focus_i == 2, Color::Cyan, Color::White),
         );
         frame.render_widget(block, area);
 

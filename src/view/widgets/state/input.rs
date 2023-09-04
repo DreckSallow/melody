@@ -5,9 +5,6 @@ pub struct InputState {
 }
 
 impl InputState {
-    pub fn new(text: String, index: usize) -> Self {
-        Self { text, index }
-    }
     pub fn text(&self) -> &str {
         &self.text
     }

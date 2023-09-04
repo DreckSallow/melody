@@ -15,6 +15,7 @@ pub struct Input<'a> {
 }
 
 impl<'a> Input<'a> {
+    #[allow(dead_code)]
     pub fn with_style(mut self, style: Style) -> Self {
         self.style = style;
         self
