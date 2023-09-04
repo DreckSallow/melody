@@ -46,7 +46,7 @@ impl MusicManagerState {
     pub fn delete_playlist(&mut self) {
         if let Some(i) = self.list_playlists.selected() {
             let play = self.playlists.remove(i);
-            if self.playlists.len() == 0 {
+            if self.playlists.is_empty() {
                 self.list_playlists.select(None);
             } else if i >= self.playlists.len() {
                 self.list_playlists.select(Some(self.playlists.len() - 1));

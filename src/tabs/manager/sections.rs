@@ -38,7 +38,7 @@ impl Component for PlaylistsManager {
             .collect();
         let playlist_list = List::new(playlists)
             .block(ui_block(
-                format!(" Playlists ({})", state.playlists.len()),
+                format!(" Playlists (count: {})", state.playlists.len()),
                 select!(state.focus_i == 1, Color::Cyan, Color::White),
             ))
             .highlight_symbol("🚀 ")
@@ -159,7 +159,7 @@ impl Component for SongsManager {
             )
             .highlight_style(Style::default().bg(Color::Blue))
             .block(ui_block(
-                format!(" Songs ({})", state.songs.len()),
+                format!(" Songs (count: {})", state.songs.len()),
                 select!(state.focus_i == 2, Color::Cyan, Color::White),
             ))
             .highlight_symbol("🎵 ");

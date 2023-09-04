@@ -26,7 +26,7 @@ impl Component for PlayerLibrary {
         let is_focused = state.focus_i == 0;
 
         let section = ui_block(
-            format!(" Playlists ({}) ", state.playlists.len()),
+            format!(" Playlists (count: {}) ", state.playlists.len()),
             select!(is_focused, Color::Cyan, Color::White),
         );
         let items: Vec<ListItem> = state
@@ -100,11 +100,16 @@ impl Component for Playlist {
             let songs_info: Vec<Vec<String>> = playlist
                 .songs
                 .iter()
-                .map(|s| vec![s.file_name.clone().unwrap_or("----".into())])
+                .map(|s| {
+                    vec![
+                        s.file_name.clone().unwrap_or("----".into()),
+                        s.duration_format.clone(),
+                    ]
+                })
                 .collect();
 
             (
-                format!(" {} ({})", playlist.name, playlist.songs.len()),
+                format!(" {} (count: {})", playlist.name, playlist.songs.len()),
                 songs_info,
             )
         } else {
@@ -116,7 +121,9 @@ impl Component for Playlist {
             data.0.as_str(),
             select!(is_focused, Color::Cyan, Color::White),
         );
-        let headers_cells = ["Name"].iter().map(|header| Cell::from(*header));
+        let headers_cells = ["Name", "Duration"]
+            .iter()
+            .map(|header| Cell::from(*header));
         let header = Row::new(headers_cells)
             .height(1)
             .style(Style::default().fg(ratatui::style::Color::Blue));
@@ -133,11 +140,7 @@ impl Component for Playlist {
                 Color::Blue,
                 Color::LightBlue
             )))
-            .widths(&[
-                Constraint::Percentage(70),
-                Constraint::Percentage(15),
-                Constraint::Percentage(15),
-            ])
+            .widths(&[Constraint::Percentage(80), Constraint::Percentage(20)])
             .highlight_symbol("🎵 ");
         frame.render_stateful_widget(table_block, area, state.table_songs.state())
     }
