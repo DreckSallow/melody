@@ -16,5 +16,10 @@ fn main() {
         Ok(app) => app.run(),
         Err(e) => Err(anyhow!(e)),
     };
-    println!("res: {:?}", res);
+    if let Err(e) = res {
+        eprintln!("{}", e);
+        std::process::exit(1);
+    } else {
+        std::process::exit(0);
+    }
 }
