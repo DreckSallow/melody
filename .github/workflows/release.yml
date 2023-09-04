@@ -1,0 +1,67 @@
+name: release
+
+on: 
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name for release"
+        required: true
+
+jobs:
+  relase-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update rust
+        run: rustup update
+
+      - name: Compress
+        shell: pwsh
+        run: |
+          cargo build --release
+          Compress-Archive ./target/release/melody.exe ./melody-windows.zip
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: melody-windows
+          path: ./melody-windows.zip
+          retention-days: 1
+  
+  release-linux:
+    runs-om: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update rust
+        run: rustup update
+      
+      - name: Compress
+        run: |
+          cargo build --release
+          tar -czf ./melody-linux.tar.gz ./target/release/melody
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: melody-linux
+          path: ./melody-linux.tar.gz
+          retention-days: 1
+
+  release-macos:
+    runs-om: macos-11
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update rust
+        run: rustup update
+      
+      - name: Compress
+        run: |
+          cargo build --release
+          zip -r ./melody-macos.zip ./target/release/melody
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: melody-macos
+          path: ./melody-macos.zip
+          retention-days: 1
