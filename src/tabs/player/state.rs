@@ -4,7 +4,7 @@ use rodio::{Decoder, OutputStream, Sink};
 use crate::{
     handlers::music::{PlaylistInfo, PlaylistSong},
     select,
-    utils::Condition,
+    utils::{self, Condition},
     view::controllers::{list::ListController, table::TableController},
 };
 
@@ -93,11 +93,13 @@ impl Progress {
     pub fn start(&mut self) {
         self.timer = Some(Instant::now())
     }
+    pub fn total_duration(&self) -> Duration {
+        self.timer
+            .and_then(|t| self.duration.checked_add(t.elapsed()))
+            .unwrap_or(self.duration)
+    }
     pub fn seconds(&self) -> u64 {
-        match self.timer {
-            Some(ref timer) => (self.duration + timer.elapsed()).as_secs(),
-            None => self.duration.as_secs(),
-        }
+        self.total_duration().as_secs()
     }
     pub fn percentage(&self, other: Duration) -> u8 {
         let percentage = (self.seconds() * 100) / other.as_secs();
@@ -123,6 +125,7 @@ impl AudioHandler {
         let (_stream, handle) = OutputStream::try_default()?;
         let sink = Sink::try_new(&handle)?;
         sink.pause();
+        sink.set_volume(1.0);
 
         Ok(Self {
             sink,
@@ -147,25 +150,40 @@ impl AudioHandler {
         self.sink.pause();
         self.sink.stop();
     }
-    pub fn up_volumne(&self) {
+    pub fn time_format(&self) -> String {
+        utils::format_time(self.progress.seconds())
+    }
+    pub fn volume(&self) -> (f32, u8) {
+        let v = self.sink.volume();
+        (v, (v * 100.0) as u8)
+    }
+    pub fn toggle_volume(&self) {
+        let v = self.sink.volume();
+        if v >= 1.0 {
+            self.sink.set_volume(0.0);
+        } else if v <= -0.0 {
+            self.sink.set_volume(1.0);
+        }
+    }
+    pub fn up_volume(&self) {
         let v = self.sink.volume();
         if v + 0.1 <= 1.0 {
             self.sink.set_volume(v + 0.1);
         }
     }
-    pub fn down_volumne(&self) {
+    pub fn down_volume(&self) {
         let v = self.sink.volume();
         if v - 0.1 >= -0.1 {
             self.sink.set_volume(v - 0.1);
         }
     }
-    pub fn percentage_info(&mut self, other: Duration) -> (u64, u8) {
-        let info = (self.progress.seconds(), self.progress.percentage(other));
-        if info.1 >= 100 {
+    pub fn percentage(&mut self, other: Duration) -> u8 {
+        let percentage = self.progress.percentage(other);
+        if percentage >= 100 {
             self.pause();
         }
 
-        info
+        percentage
     }
     pub fn is_end_song(&self) -> bool {
         if let Some(ref song) = self.song {

@@ -166,8 +166,8 @@ impl Component for AudioPlayer {
         let block = ui_block(
             Title::from(select!(
                 state.audio_handler.song(),
-                "Now Playing",
-                "Not Song"
+                format!(" Playing (volume: {}%) ", state.audio_handler.volume().1),
+                "Not Song".to_string()
             ))
             .alignment(Alignment::Center),
             select!(state.focus_i == 2, Color::Cyan, Color::White),
@@ -188,12 +188,16 @@ impl Component for AudioPlayer {
                         .alignment(Alignment::Center);
                 frame.render_widget(header_block, chunks[0]);
 
-                let (seconds, percent) = state.audio_handler.percentage_info(song.duration);
+                let percent = state.audio_handler.percentage(song.duration);
 
                 let gauge = Gauge::default()
-                    .gauge_style(Style::default().fg(Color::Red))
+                    .gauge_style(Style::default().fg(Color::Cyan).bg(Color::DarkGray))
                     .percent(percent as u16)
-                    .label(format!("{} / {}", seconds, song.duration.as_secs()));
+                    .label(format!(
+                        "{} / {}",
+                        state.audio_handler.time_format(),
+                        song.duration_format
+                    ));
                 frame.render_widget(gauge, chunks[1]);
             }
             None => {}
@@ -210,8 +214,9 @@ impl Component for AudioPlayer {
                 };
                 match key_event.code {
                     KeyCode::Char(' ') => state.audio_handler.toggle_action(),
-                    KeyCode::Down => state.audio_handler.down_volumne(),
-                    KeyCode::Up => state.audio_handler.up_volumne(),
+                    KeyCode::Char('m') => state.audio_handler.toggle_volume(),
+                    KeyCode::Down => state.audio_handler.down_volume(),
+                    KeyCode::Up => state.audio_handler.up_volume(),
                     _ => {}
                 }
             }

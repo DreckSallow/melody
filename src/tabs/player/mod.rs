@@ -51,7 +51,7 @@ impl Component for PlayerTab {
 
         let content_chunks = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
             .split(chunks[0]);
         self.library_section
             .render(frame, content_chunks[0], &mut self.state);
