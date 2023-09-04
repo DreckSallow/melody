@@ -9,12 +9,12 @@ use crate::{
     handlers::music::MusicHandler,
 };
 
-use self::{audio::AudioPlayer, library::PlayerLibrary, playlist::Playlist, state::PlayerState};
-
-mod audio;
-mod library;
-mod playlist;
+mod sections;
 mod state;
+use self::{
+    sections::{AudioPlayer, PlayerLibrary, Playlist},
+    state::PlayerState,
+};
 
 pub struct PlayerTab {
     state: PlayerState,
@@ -24,28 +24,14 @@ pub struct PlayerTab {
 }
 
 impl PlayerTab {
-    pub fn build(app_state: &AppState) -> Result<Self> {
-        let mut state = PlayerState::create(MusicHandler::load_playlists()?);
-        if !state.playlists.is_empty() {
-            state.playlist_selected = Some(0);
-        }
-        let mut library = PlayerLibrary::build(state.playlist_selected);
-        library.is_focus = true;
-
-        if let Some(playlist) = state.selected_playlist() {
-            if !playlist.songs.is_empty() {
-                state.audio_selected = Some(0);
-            }
-        }
-        let playlist = Playlist::build(state.indices(), state.audio_selected);
-        let audio =
-            AudioPlayer::build(app_state, state.selected_audio().cloned(), state.indices())?;
+    pub fn build(_app_state: &AppState) -> Result<Self> {
+        let state = PlayerState::new(MusicHandler::load_playlists()?);
 
         Ok(Self {
             state,
-            library_section: library,
-            playlist_section: playlist,
-            audio_section: audio,
+            library_section: PlayerLibrary,
+            playlist_section: Playlist,
+            audio_section: AudioPlayer,
         })
     }
 }
@@ -60,12 +46,12 @@ impl Component for PlayerTab {
     ) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(80), Constraint::Percentage(20)].as_ref())
+            .constraints([Constraint::Percentage(80), Constraint::Percentage(20)])
             .split(area);
 
         let content_chunks = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
             .split(chunks[0]);
         self.library_section
             .render(frame, content_chunks[0], &mut self.state);
@@ -85,32 +71,23 @@ impl Component for PlayerTab {
                 if let KeyModifiers::CONTROL = key_event.modifiers {
                     match key_event.code {
                         KeyCode::Char('2') => {
-                            self.playlist_section.is_focus = true;
-                            self.library_section.is_focus = false;
-                            self.audio_section.is_focus = false
+                            self.state.focus_i = 1;
                         }
                         KeyCode::Char('1') => {
-                            self.library_section.is_focus = true;
-                            self.playlist_section.is_focus = false;
-                            self.audio_section.is_focus = false
+                            self.state.focus_i = 0;
                         }
                         KeyCode::Char('3') => {
-                            self.playlist_section.is_focus = false;
-                            self.library_section.is_focus = false;
-                            self.audio_section.is_focus = true
+                            self.state.focus_i = 2;
                         }
                         _ => {}
                     }
                 }
 
-                if self.playlist_section.is_focus() {
-                    self.playlist_section.on_event(event, &mut self.state);
-                }
-                if self.library_section.is_focus() {
-                    self.library_section.on_event(event, &mut self.state);
-                }
-                if self.audio_section.is_focus() {
-                    self.audio_section.on_event(event, &mut self.state);
+                match self.state.focus_i {
+                    0 => self.library_section.on_event(event, &mut self.state),
+                    1 => self.playlist_section.on_event(event, &mut self.state),
+                    2 => self.audio_section.on_event(event, &mut self.state),
+                    _ => {}
                 }
             }
         }
@@ -120,7 +97,7 @@ impl Component for PlayerTab {
 impl FinishableComp for PlayerTab {
     type Res = ();
     fn finish(&mut self) -> Result<Self::Res> {
-        self.audio_section.finish();
+        self.state.audio_handler.finish();
         Ok(())
     }
 }

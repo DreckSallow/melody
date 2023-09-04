@@ -6,7 +6,10 @@ use std::{
 use anyhow::Result;
 use lofty::{Accessor, AudioFile, Probe, TaggedFileExt};
 
-use crate::data::playlists::{PlaylistStore, RawPlaylist, RawPlaylistToml};
+use crate::{
+    data::playlists::{PlaylistStore, RawPlaylist, RawPlaylistToml},
+    utils,
+};
 
 #[derive(Clone, Debug)]
 pub struct PlaylistInfo {
@@ -19,6 +22,7 @@ pub struct PlaylistSong {
     pub file_name: Option<String>,
     pub path: PathBuf,
     pub duration: Duration,
+    pub duration_format: String,
 }
 
 pub struct MusicHandler;
@@ -92,6 +96,7 @@ impl MusicHandler {
             .or_else(|| tagged_file.first_tag())
             .and_then(|t| t.title().as_deref().map(|o| o.to_string()));
         let path_buf = PathBuf::from(p.as_ref());
+        let d = properties.duration();
         Ok(PlaylistSong {
             title: raw_title,
             file_name: path_buf
@@ -99,7 +104,8 @@ impl MusicHandler {
                 .and_then(|n| n.to_str())
                 .map(|st| st.to_string()),
             path: path_buf,
-            duration: properties.duration(),
+            duration_format: utils::format_time(d.as_secs()),
+            duration: d,
         })
     }
 }
