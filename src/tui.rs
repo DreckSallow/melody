@@ -7,7 +7,7 @@ use anyhow::Result;
 use ratatui::{self, prelude::CrosstermBackend, Terminal};
 
 use crossterm::{
-    event::{self, EnableMouseCapture, Event, KeyCode},
+    event::{self, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -38,8 +38,7 @@ impl TuiApp {
         execute!(self.terminal.backend_mut(), LeaveAlternateScreen)?;
         self.terminal.show_cursor()
     }
-
-    pub fn run(mut self) -> Result<()> {
+    fn internal_run(&mut self) -> Result<()> {
         self.setup_terminal()?;
         let mut app = App::build()?;
         loop {
@@ -47,6 +46,10 @@ impl TuiApp {
                 .draw(|frame| app.render(frame, frame.size(), &mut None))?;
             if event::poll(Duration::from_millis(250))? {
                 if let Event::Key(key) = event::read()? {
+                    if KeyModifiers::CONTROL == key.modifiers && KeyCode::Char('c') == key.code {
+                        app.on_event(&AppEvent::Quit, &mut None);
+                        break;
+                    }
                     if KeyCode::Char('q') == key.code {
                         app.on_event(&AppEvent::Quit, &mut None);
                         break;
@@ -55,7 +58,14 @@ impl TuiApp {
                 }
             }
         }
-        self.restore_terminal()?;
         Ok(())
+    }
+
+    //Wrap the internal_run to restore the terminal if
+    //an error ocurred
+    pub fn run(mut self) -> Result<()> {
+        let run_res = self.internal_run();
+        self.restore_terminal()?;
+        run_res
     }
 }

@@ -24,6 +24,10 @@ impl PlaylistStore {
                 p.push(Self::FILE);
                 if !p.exists() {
                     fs::File::create(&p)?;
+                    // This is for create the toml structure
+                    Self::save(RawPlaylistToml {
+                        playlists: Vec::new(),
+                    })?
                 }
                 Ok(p)
             }

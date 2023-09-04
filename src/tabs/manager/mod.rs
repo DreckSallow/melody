@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, rc::Rc};
 
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -8,7 +8,7 @@ use crate::{
     app::AppState,
     component::{Component, FinishableComp},
     event::AppEvent,
-    handlers::music::{MusicHandler, PlaylistInfo, PlaylistSong},
+    handlers::music::MusicHandler,
     select,
     utils::Condition,
     view::{
@@ -17,66 +17,12 @@ use crate::{
     },
 };
 
-use self::sections::{InputPlaylist, PlaylistsManager, SongsManager};
 mod sections;
-
-pub struct MusicManagerState {
-    list_songs: SelectListState,
-    input_state: InputState,
-    list_playlists: ListController,
-    playlists: Vec<PlaylistInfo>,
-    songs: Vec<PlaylistSong>,
-    focus_i: u8,
-}
-
-impl MusicManagerState {
-    pub fn update_select_list(&mut self) {
-        let selecteds: Vec<usize> = match self
-            .list_playlists
-            .selected()
-            .and_then(|i| self.playlists.get(i))
-        {
-            Some(play) => {
-                let songs_paths: Vec<PathBuf> = play.songs.iter().map(|s| s.path.clone()).collect();
-                self.songs
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, s)| songs_paths.contains(&s.path).then_some(i))
-                    .collect()
-            }
-            None => [].into(),
-        };
-        self.list_songs = SelectListState::default()
-            .with_len(self.songs.len())
-            .with_selecteds(selecteds)
-            .with_index(select!(self.songs.is_empty(), None, Some(0)));
-    }
-    pub fn delete_playlist(&mut self) {
-        if let Some(i) = self.list_playlists.selected() {
-            self.playlists.remove(i);
-            if self.playlists.len() == 0 {
-                self.list_playlists.select(None);
-            } else if i >= self.playlists.len() {
-                self.list_playlists.select(Some(self.playlists.len() - 1));
-            }
-            self.update_select_list()
-        }
-    }
-
-    pub fn update_playlist(&mut self) {
-        if let Some(i) = self.list_playlists.selected() {
-            if let Some(playlist) = self.playlists.get_mut(i) {
-                playlist.songs = [].into();
-                let selecteds = self.list_songs.selecteds();
-                for (i, song) in self.songs.iter().enumerate() {
-                    if selecteds.contains(&i) {
-                        playlist.songs.push(song.clone());
-                    }
-                }
-            }
-        }
-    }
-}
+mod state;
+use self::{
+    sections::{InputPlaylist, PlaylistsManager, SongsManager},
+    state::MusicManagerState,
+};
 
 pub struct PlaylistManager {
     state: MusicManagerState,
@@ -86,7 +32,7 @@ pub struct PlaylistManager {
 }
 
 impl PlaylistManager {
-    pub fn build(p: &PathBuf) -> Result<Self> {
+    pub fn build(app_state: &AppState, p: &PathBuf) -> Result<Self> {
         let songs = MusicHandler::load_songs(p)?;
         let playlists = MusicHandler::load_playlists()?;
         let selecteds = if let Some(play) = playlists.get(0) {
@@ -114,6 +60,7 @@ impl PlaylistManager {
             input_state: InputState::default(),
             songs,
             focus_i,
+            logger: Rc::clone(&app_state.log),
         };
         Ok(Self {
             state,

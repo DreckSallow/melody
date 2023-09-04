@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyEventKind};
+use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{
     prelude::*,
     style::Style,
@@ -8,7 +8,6 @@ use ratatui::{
 use crate::{
     component::Component,
     event::AppEvent,
-    handlers::music::PlaylistInfo,
     select,
     utils::Condition,
     view::{
@@ -16,7 +15,6 @@ use crate::{
         widgets::{
             input::Input,
             list::{SelectList, WRow},
-            state::input::InputState,
         },
     },
 };
@@ -40,11 +38,11 @@ impl Component for PlaylistsManager {
             .collect();
         let playlist_list = List::new(playlists)
             .block(ui_block(
-                "Playlists",
+                format!(" Playlists (count: {})", state.playlists.len()),
                 select!(state.focus_i == 1, Color::Cyan, Color::White),
             ))
-            .highlight_symbol("> ")
-            .highlight_style(Style::default().bg(Color::Cyan));
+            .highlight_symbol("🚀 ")
+            .highlight_style(Style::default().bg(Color::Blue));
         frame.render_stateful_widget(playlist_list, area, state.list_playlists.state());
     }
     fn on_event(&mut self, event: &AppEvent, state: &mut Self::State) {
@@ -66,7 +64,6 @@ impl Component for PlaylistsManager {
                 KeyCode::Enter => {
                     // FIXME: Change the selected index of ListController
                     // because, the select index is changed when The controller
-                    // Is down or UP
                     // state.update_select_list();
 
                     //We can change the focus section
@@ -92,10 +89,14 @@ impl Component for InputPlaylist {
         area: Rect,
         state: &mut Self::State,
     ) {
-        let input = Input::default().block(ui_block(
-            "Create",
-            select!(state.focus_i == 0, Color::Cyan, Color::White),
-        ));
+        let input = Input::default()
+            .block(ui_block(
+                " Create ",
+                select!(state.focus_i == 0, Color::Cyan, Color::White),
+            ))
+            .cursor_visibility(state.focus_i == 0)
+            .cursor_style(Style::default().bg(Color::Blue));
+
         frame.render_stateful_widget(input, area, &mut state.input_state)
     }
     fn on_event(&mut self, event: &AppEvent, state: &mut Self::State) {
@@ -111,6 +112,11 @@ impl Component for InputPlaylist {
                     state.input_state.back_index();
                 }
                 KeyCode::Char(l) => {
+                    if let KeyModifiers::CONTROL = key_event.modifiers {
+                        if l == '1' {
+                            return;
+                        }
+                    }
                     state.input_state.insert(l.to_string().as_str());
                     state.input_state.next_index();
                 }
@@ -119,22 +125,7 @@ impl Component for InputPlaylist {
                     state.input_state.back_index();
                 }
                 KeyCode::Enter => {
-                    let input = state.input_state.text().to_string();
-                    let mut contains = false;
-                    // Store the playlists
-                    for play in &state.playlists {
-                        if play.name == input {
-                            contains = true;
-                            break;
-                        }
-                    }
-                    if !contains {
-                        state.playlists.push(PlaylistInfo {
-                            name: state.input_state.text().into(),
-                            songs: Vec::new(),
-                        });
-                        state.input_state = InputState::default();
-                    }
+                    state.create_playlist();
                 }
 
                 _ => {}
@@ -161,13 +152,17 @@ impl Component for SongsManager {
         let songs_table = SelectList::new(songs_rows)
             .header(WRow::new(["Name"]).with_height(1))
             .widths(&[Constraint::Percentage(100)])
-            .index_style(Style::default().bg(Color::LightGreen))
-            .highlight_style(Style::default().bg(Color::Cyan))
+            .index_style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::ITALIC),
+            )
+            .highlight_style(Style::default().bg(Color::Blue))
             .block(ui_block(
-                "Songs",
+                format!(" Songs (count: {})", state.songs.len()),
                 select!(state.focus_i == 2, Color::Cyan, Color::White),
             ))
-            .highlight_symbol("> ");
+            .highlight_symbol("🎵 ");
         frame.render_stateful_widget(songs_table, area, &mut state.list_songs);
     }
     fn on_event(&mut self, event: &crate::event::AppEvent, state: &mut Self::State) {
