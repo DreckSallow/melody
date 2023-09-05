@@ -38,9 +38,10 @@ jobs:
       
       - name: Setup dependencies
         run: |
-          apt-get update
-          apt-get install pkg-config
-          apt-get install libasound2-dev
+          sudo apt update
+          sudo apt-get update
+          sudo apt-get install pkg-config
+          sudo apt-get install libasound2-dev
       
       - name: Compress
         run: |
@@ -88,4 +89,4 @@ jobs:
       - name: Publish binaries
         # Delete --draft
         run: |
-            gh release create ${{inputs.tag_name}} --title "${{inputs.tag_name}}" --draft  flow-macos/* flow-linux/* flow-windows/*
+            gh release create ${{inputs.tag_name}} --title "${{inputs.tag_name}}" --draft  melody-macos/* melody-linux/* melody-windows/*
