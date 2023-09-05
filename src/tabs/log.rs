@@ -33,24 +33,24 @@ impl LogMessage {
         let (h, m, s) = now.to_hms();
         format!("[{} {h}:{m}:{s}]", now.date())
     }
-    fn format_text(m: String) -> String {
-        format!("{} {m}", Self::get_time(),)
+    fn format_text(m: String, typ: &str) -> String {
+        format!("{} [{typ}] {m}", Self::get_time(),)
     }
     pub fn info<T: Into<String>>(message: T) -> Self {
         LogMessage {
-            message: Self::format_text(message.into()),
+            message: Self::format_text(message.into(), "INFO"),
             log_type: LogType::Info,
         }
     }
     pub fn warn<T: Into<String>>(message: T) -> Self {
         LogMessage {
-            message: Self::format_text(message.into()),
+            message: Self::format_text(message.into(), "WARN"),
             log_type: LogType::Warn,
         }
     }
     pub fn error<T: Into<String>>(message: T) -> Self {
         LogMessage {
-            message: Self::format_text(message.into()),
+            message: Self::format_text(message.into(), "ERROR"),
             log_type: LogType::Error,
         }
     }
