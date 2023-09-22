@@ -1,5 +1,6 @@
 # Melody
 Melody is a TUI music player. You can create playlists and play them.
+![preview](./melody-image.png)
 
 ## Dependencies
 Linux need installed [Alsa](https://www.alsa-project.org/)
